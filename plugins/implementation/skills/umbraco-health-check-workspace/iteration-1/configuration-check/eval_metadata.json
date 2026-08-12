@@ -1,0 +1,12 @@
+{
+  "eval_id": 1,
+  "eval_name": "configuration-check",
+  "prompt": "I have an Umbraco 17 site. Create a custom dashboard Health Check that verifies Umbraco:CMS:Global:UseHttps is true in production, places it in the Security group, and gives editors a useful official documentation link. Tell me how to verify it in Settings > Health Check.",
+  "expectations": [
+    "The response distinguishes a backoffice Health Check from a health probe endpoint",
+    "The implementation uses a stable HealthCheck attribute with a unique GUID, concise name, description, and Security group",
+    "The check reads Umbraco:CMS:Global:UseHttps and treats true as the recommended accepted value",
+    "The response links to the official .md Health Check documentation and gives Settings > Health Check verification steps",
+    "If a buildable project exists, the agent reports a successful build only after running it; otherwise it explicitly says build verification was unavailable"
+  ]
+}

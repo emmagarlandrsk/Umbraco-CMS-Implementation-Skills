@@ -1,0 +1,44 @@
+{
+  "expectations": [
+    {
+      "text": "The response explicitly chooses Razor only because frontend presentation was requested and keeps the check logic out of the view",
+      "passed": true,
+      "evidence": "final.md: 'Because the requirement is visitor-facing presentation, use the Razor surface; keep the health-check status computation in backend C# rather than in the view. Have an injected provider return a small, non-sensitive result ... and let the view only localize and render it.' The Razor snippet only calls `HealthWarningProvider.GetCurrent()` and localizes/renders; no check logic is computed in the view."
+    },
+    {
+      "text": "Dictionary aliases are stable and organised by feature and message purpose rather than translated names",
+      "passed": true,
+      "evidence": "final.md defines `HealthCheck.Warning` and `HealthCheck.Warning.MissingTranslation`, explicitly noting 'aliases are not translated' and organizing them by feature (HealthCheck) and message purpose (Warning vs. MissingTranslation fallback message)."
+    },
+    {
+      "text": "English, Danish, and German values are treated as deliberate supported cultures",
+      "passed": true,
+      "evidence": "final.md provides explicit, distinct translated values for en-US, da-DK, and de-DE for both dictionary items (e.g. 'A site health check needs attention.' / 'Et webstedshelbredstjek kræver opmærksomhed.' / 'Eine Website-Integritätsprüfung erfordert Aufmerksamkeit.'), and instructs testing 'the three supported cultures have deliberate values.'"
+    },
+    {
+      "text": "The fallback order is explicit and ends in a safe non-sensitive invariant message or failure state",
+      "passed": true,
+      "evidence": "final.md: 'Try that culture first, then the configured default (en-US below), then the invariant safe message.' The `GetSafeWarning` method chains requested culture -> fallback culture -> localized MissingTranslation (requested) -> MissingTranslation (fallback) -> hardcoded invariant string 'A site health warning is currently unavailable.' as the final safe non-sensitive fallback."
+    },
+    {
+      "text": "Razor output is encoded and does not expose configuration secrets",
+      "passed": true,
+      "evidence": "final.md: \"Razor's normal string rendering is HTML-encoded; do not use Html.Raw for dictionary text\" and the view uses `@warningText` (encoded interpolation, no Html.Raw). Also explicitly states the provider 'must not pass configuration values, exception details, credentials, or other secrets to the view.'"
+    },
+    {
+      "text": "Build verification is reported honestly",
+      "passed": true,
+      "evidence": "final.md: 'Build verification: No project files or input implementation were provided, and I did not run a build. The snippets should be checked against the site's installed Umbraco 17 package and existing localization conventions before deployment.' Transcript also states: 'Recorded that no build was run because no project/input implementation was supplied.' No false claim of a passing build."
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "total": 6,
+    "pass_rate": 1.0
+  },
+  "eval_feedback": {
+    "suggestions": [],
+    "overall": "All six expectations are met with concrete, verifiable evidence in final.md rather than surface-level compliance: the dictionary aliases and their per-culture values are actually written out, the fallback chain is a real implemented method (not just described), and the honesty expectation is satisfied by an explicit no-build disclosure rather than a fabricated success. No weak or unverifiable assertions noted; the eval set for this task looks solid."
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "eval_id": 3,
+  "eval_name": "razor-multilingual-fallback",
+  "prompt": "On our Umbraco 17 Razor site, show a localized health-check warning to visitors. We support English, Danish, and German, use Dictionary items, and need a safe fallback if the translation is missing.",
+  "expectations": [
+    "The response explicitly chooses Razor only because frontend presentation was requested and keeps the check logic out of the view",
+    "Dictionary aliases are stable and organised by feature and message purpose rather than translated names",
+    "English, Danish, and German values are treated as deliberate supported cultures",
+    "The fallback order is explicit and ends in a safe non-sensitive invariant message or failure state",
+    "Razor output is encoded and does not expose configuration secrets",
+    "Build verification is reported honestly"
+  ]
+}

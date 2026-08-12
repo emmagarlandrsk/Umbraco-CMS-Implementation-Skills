@@ -1,0 +1,336 @@
+{
+  "metadata": {
+    "skill_name": "umbraco-health-check",
+    "skill_path": "plugins/implementation/skills/umbraco-health-check",
+    "executor_model": "general-purpose",
+    "analyzer_model": "claude-sonnet-5",
+    "evals_run": [
+      1,
+      2,
+      3
+    ],
+    "runs_per_configuration": 1
+  },
+  "runs": [
+    {
+      "eval_id": 1,
+      "eval_name": "configuration-check",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.8,
+        "passed": 4,
+        "failed": 1,
+        "total": 5,
+        "time_seconds": 0,
+        "tokens": 0
+      },
+      "expectations": [
+        {
+          "text": "The response distinguishes a backoffice Health Check from a health probe endpoint",
+          "passed": false,
+          "evidence": "final.md never mentions ASP.NET Core health probe endpoints (e.g. /health, IHealthCheck) or draws any contrast with the Umbraco backoffice Health Check dashboard feature. It only discusses the backoffice HealthCheck implementation ('Umbraco discovers HealthCheck implementations in the application and displays this one under Settings > Health Check > Security'). No search hit for 'probe', 'endpoint', 'IHealthCheck', or 'AspNetCore.Diagnostics' anywhere in the output. The transcript summary also does not mention making this distinction."
+        },
+        {
+          "text": "The implementation uses a stable HealthCheck attribute with a unique GUID, concise name, description, and Security group",
+          "passed": true,
+          "evidence": "final.md lines 12-16: `[HealthCheck(\"8C7F3F95-2AF5-4F62-9B72-7AE5B1E9C4D1\", \"Production HTTPS configuration\", Description = \"Checks that Umbraco:CMS:Global:UseHttps is enabled when the site runs in Production.\", Group = \"Security\")]` — a valid GUID, a concise name, a description, and the Security group are all present."
+        },
+        {
+          "text": "The check reads Umbraco:CMS:Global:UseHttps and treats true as the recommended accepted value",
+          "passed": true,
+          "evidence": "final.md line 19 defines `ConfigurationPath = \"Umbraco:CMS:Global:UseHttps\"` and line 50 evaluates `var useHttps = _configuration.GetValue<bool?>(ConfigurationPath) == true;`, then reports Success only when useHttps is true and Error otherwise (lines 51-58). This treats true as the required/recommended value in Production."
+        },
+        {
+          "text": "The response links to the official .md Health Check documentation and gives Settings > Health Check verification steps",
+          "passed": true,
+          "evidence": "final.md line 20-21 sets `DocumentationUrl = \"https://docs.umbraco.com/umbraco-cms/run-in-production/infrastructure-and-ops/health-check.md\"` (an official docs.umbraco.com .md URL), used as the ReadMoreLink. The 'Verify it in the backoffice' section (lines 75-83) gives concrete steps: set the config value, run in Production, open Settings > Health Check, expand Security, run the check, and test both pass/fail/non-production states."
+        },
+        {
+          "text": "If a buildable project exists, the agent reports a successful build only after running it; otherwise it explicitly says build verification was unavailable",
+          "passed": true,
+          "evidence": "final.md line 84: 'Build verification: not run. No project input or buildable application was provided, and repository files were not modified.' The transcript also states: 'Did not run a build because no input project was supplied; the final answer states this honestly.' No buildable project was supplied in this task, and the agent explicitly disclosed that build verification did not occur rather than fabricating a success claim."
+        }
+      ]
+    },
+    {
+      "eval_id": 1,
+      "eval_name": "configuration-check",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.6,
+        "passed": 3,
+        "failed": 2,
+        "total": 5,
+        "time_seconds": 0,
+        "tokens": 0
+      },
+      "expectations": [
+        {
+          "text": "The response distinguishes a backoffice Health Check from a health probe endpoint",
+          "passed": false,
+          "evidence": "Neither final.md nor transcript.md mentions health probe endpoints, orchestrators, load balancers, or any distinction between the backoffice 'Health Check' dashboard and .NET health probe endpoints. The response only discusses the Settings > Health Check dashboard; there is no acknowledgement that a separate 'health probe' concept exists."
+        },
+        {
+          "text": "The implementation uses a stable HealthCheck attribute with a unique GUID, concise name, description, and Security group",
+          "passed": true,
+          "evidence": "final.md lines 12-16: `[HealthCheck(\"7E8F0B1A-4D0D-4C12-9AA1-3B6DA1E56D2F\", \"Production HTTPS setting\", Description = \"Verifies that Umbraco:CMS:Global:UseHttps is enabled in production.\", Group = \"Security\")]` — includes a unique GUID, a concise name, a description, and Group = \"Security\"."
+        },
+        {
+          "text": "The check reads Umbraco:CMS:Global:UseHttps and treats true as the recommended accepted value",
+          "passed": true,
+          "evidence": "final.md line 19: `private const string SettingPath = \"Umbraco:CMS:Global:UseHttps\";` and line 48: `var enabled = _configuration.GetValue<bool?>(SettingPath) == true;` with a Success result only when enabled is true, matching the recommended/accepted value of true."
+        },
+        {
+          "text": "The response links to the official .md Health Check documentation and gives Settings > Health Check verification steps",
+          "passed": false,
+          "evidence": "The documentation link used is `https://docs.umbraco.com/umbraco-cms/run-in-production/infrastructure-and-ops/health-check` (final.md line 21), which omits the `.md` suffix that the official docs site uses for its Markdown-served Health Check page (confirmed live: the page itself advertises the `.md` variant at `.../health-check.md`, and the project's own umbraco-health-check SKILL.md explicitly links to `.../health-check.md`). The Settings > Health Check verification steps themselves are present and detailed (final.md lines 82-91), but the specific '.md' documentation link requirement is not met."
+        },
+        {
+          "text": "If a buildable project exists, the agent reports a successful build only after running it; otherwise it explicitly says build verification was unavailable",
+          "passed": true,
+          "evidence": "transcript.md: 'No build or tests were run because no repository implementation was made; the final answer states this honestly.' final.md line 92: 'This is a code-only answer; no project files were modified and no build or test was run.' The agent explicitly discloses that no build verification occurred rather than falsely claiming success."
+        }
+      ]
+    },
+    {
+      "eval_id": 2,
+      "eval_name": "general-check",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 6,
+        "failed": 0,
+        "total": 6,
+        "time_seconds": 0,
+        "tokens": 0
+      },
+      "expectations": [
+        {
+          "text": "The implementation derives from the current Umbraco HealthCheck API and returns an explicit success or error status",
+          "passed": true,
+          "evidence": "final.md: `public sealed class RobotsTxtHealthCheck : HealthCheck` with `[HealthCheck(\"5F7D2A10-...\", \"Robots.txt\", ...)]` attribute. `GetStatus()` returns `new HealthCheckStatus(...) { ResultType = exists ? StatusResultType.Success : StatusResultType.Error, ... }`, and `ExecuteAction` returns `StatusResultType.Success`/`StatusResultType.Error` explicitly in every branch."
+        },
+        {
+          "text": "A remediation action is offered only when the file is missing, has a stable alias, and is validated in ExecuteAction",
+          "passed": true,
+          "evidence": "In `GetStatus()`, `Actions = exists ? Array.Empty<HealthCheckAction>() : new[] { new HealthCheckAction(AddActionAlias, Id) {...} }` — action only added when file missing. `AddActionAlias` is a `private const string AddActionAlias = \"addRobotsTxt\";` (stable, hardcoded). `ExecuteAction` starts with `if (!string.Equals(action.Alias, AddActionAlias, StringComparison.Ordinal)) throw new InvalidOperationException(\"Action not supported.\");` validating the alias before proceeding."
+        },
+        {
+          "text": "Write failures are surfaced as an error and logged rather than swallowed or reported as success",
+          "passed": true,
+          "evidence": "`catch (Exception exception) { _logger.LogError(exception, \"Could not create robots.txt at {Path}.\", path); return new HealthCheckStatus(...) { ResultType = StatusResultType.Error, ... }; }` — logs via ILogger and returns an Error status rather than Success or silently ignoring the exception. Concurrent-creation race (`IOException` when file now exists) is handled distinctly and still returns Success only because the desired end state is genuinely achieved, not because the error was swallowed."
+        },
+        {
+          "text": "User-facing messages use the project localization mechanism, and the response links to official Health Check and health-check configuration documentation",
+          "passed": true,
+          "evidence": "All status/action text is produced via `_text.Localize(\"healthcheck\", \"...\")` using injected `ILocalizedTextService`, with corresponding `Config/Lang/en-US.user.xml` entries under `<area alias=\"healthcheck\">`. Response ends with 'Official references: https://docs.umbraco.com/umbraco-cms/run-in-production/infrastructure-and-ops/health-check.md' and 'https://docs.umbraco.com/umbraco-cms/develop-with-umbraco/configuration/healthchecks.md'."
+        },
+        {
+          "text": "The response explains that scheduled execution/notifications are separate from dashboard loading",
+          "passed": true,
+          "evidence": "final.md states: 'Dashboard loading executes the check immediately; scheduling is separate. Configure the built-in notification runner in `appsettings.json`:' followed by the `HealthChecks.Notification` config block and 'This runs daily after the configured first run and emails only failures.'"
+        },
+        {
+          "text": "Build verification is reported honestly",
+          "passed": true,
+          "evidence": "final.md concludes: '**Build verification:** not run. No project files were provided and this task requested no repository modifications.' This matches the transcript's note that no project files were supplied, so no build was fabricated or falsely claimed."
+        }
+      ]
+    },
+    {
+      "eval_id": 2,
+      "eval_name": "general-check",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 6,
+        "failed": 0,
+        "total": 6,
+        "time_seconds": 0,
+        "tokens": 0
+      },
+      "expectations": [
+        {
+          "text": "The implementation derives from the current Umbraco HealthCheck API and returns an explicit success or error status",
+          "passed": true,
+          "evidence": "final.md: `public sealed class RobotsTxtHealthCheck : HealthCheck` overrides `GetStatus()` and `ExecuteAction(HealthCheckAction action)`, and every returned `HealthCheckStatus` explicitly sets `ResultType = StatusResultType.Success` or `StatusResultType.Error` (e.g. `GetRobotsStatus()` and the `Success()` helper)."
+        },
+        {
+          "text": "A remediation action is offered only when the file is missing, has a stable alias, and is validated in ExecuteAction",
+          "passed": true,
+          "evidence": "In `GetRobotsStatus()`, the `Actions` array containing `new HealthCheckAction(CreateAction, Id)` is only populated in the branch where `File.Exists(...)` is false; the success branch returns `Actions = Array.Empty<HealthCheckAction>()`. `CreateAction` is a `private const string CreateAction = \"createRobotsTxt\";` (stable alias). `ExecuteAction` validates it: `if (!string.Equals(action.Alias, CreateAction, StringComparison.Ordinal)) throw new InvalidOperationException(...)`."
+        },
+        {
+          "text": "Write failures are surfaced as an error and logged rather than swallowed or reported as success",
+          "passed": true,
+          "evidence": "`ExecuteAction`'s catch block: `catch (Exception exception) { _logger.LogError(exception, \"Could not create robots.txt at {Path}\", path); return new HealthCheckStatus(_text.Localize(\"healthcheck\", \"seoRobotsCreateFailed\")) { ResultType = StatusResultType.Error, ... }; }` — logs then returns an explicit Error status rather than swallowing the exception or returning Success."
+        },
+        {
+          "text": "User-facing messages use the project localization mechanism, and the response links to official Health Check and health-check configuration documentation",
+          "passed": true,
+          "evidence": "All status/action text is produced via `_text.Localize(\"healthcheck\", \"...\")` using `ILocalizedTextService`, with a matching `Config/Lang/en-US.user.xml` snippet defining the aliases. The response's 'Official references' section links to `https://docs.umbraco.com/umbraco-cms/run-in-production/infrastructure-and-ops/health-check.md` and `https://docs.umbraco.com/umbraco-cms/develop-with-umbraco/configuration/healthchecks.md`."
+        },
+        {
+          "text": "The response explains that scheduled execution/notifications are separate from dashboard loading",
+          "passed": true,
+          "evidence": "'Scheduling and notification' section: 'Dashboard loading runs `GetStatus()` on demand. Scheduling/notification is separate: configure the Health Checks notification runner in `appsettings.json`... This scheduled runner invokes the checks independently of someone opening Settings > Health Check.'"
+        },
+        {
+          "text": "Build verification is reported honestly",
+          "passed": true,
+          "evidence": "final.md 'Verification' section states: 'No repository files were changed and no build/test command was run. Build verification is therefore unavailable.' This is corroborated by the transcript: 'Did not modify repository source files' and 'State honestly that no build or tests were run because the task forbade repository changes and no validation command was executed.' No fabricated build/test claims appear anywhere in the transcript or outputs."
+        }
+      ]
+    },
+    {
+      "eval_id": 3,
+      "eval_name": "razor-multilingual-fallback",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 6,
+        "failed": 0,
+        "total": 6,
+        "time_seconds": 0,
+        "tokens": 0
+      },
+      "expectations": [
+        {
+          "text": "The response explicitly chooses Razor only because frontend presentation was requested and keeps the check logic out of the view",
+          "passed": true,
+          "evidence": "final.md: 'Because the requirement is visitor-facing presentation, use the Razor surface; keep the health-check status computation in backend C# rather than in the view. Have an injected provider return a small, non-sensitive result ... and let the view only localize and render it.' The Razor snippet only calls `HealthWarningProvider.GetCurrent()` and localizes/renders; no check logic is computed in the view."
+        },
+        {
+          "text": "Dictionary aliases are stable and organised by feature and message purpose rather than translated names",
+          "passed": true,
+          "evidence": "final.md defines `HealthCheck.Warning` and `HealthCheck.Warning.MissingTranslation`, explicitly noting 'aliases are not translated' and organizing them by feature (HealthCheck) and message purpose (Warning vs. MissingTranslation fallback message)."
+        },
+        {
+          "text": "English, Danish, and German values are treated as deliberate supported cultures",
+          "passed": true,
+          "evidence": "final.md provides explicit, distinct translated values for en-US, da-DK, and de-DE for both dictionary items (e.g. 'A site health check needs attention.' / 'Et webstedshelbredstjek kræver opmærksomhed.' / 'Eine Website-Integritätsprüfung erfordert Aufmerksamkeit.'), and instructs testing 'the three supported cultures have deliberate values.'"
+        },
+        {
+          "text": "The fallback order is explicit and ends in a safe non-sensitive invariant message or failure state",
+          "passed": true,
+          "evidence": "final.md: 'Try that culture first, then the configured default (en-US below), then the invariant safe message.' The `GetSafeWarning` method chains requested culture -> fallback culture -> localized MissingTranslation (requested) -> MissingTranslation (fallback) -> hardcoded invariant string 'A site health warning is currently unavailable.' as the final safe non-sensitive fallback."
+        },
+        {
+          "text": "Razor output is encoded and does not expose configuration secrets",
+          "passed": true,
+          "evidence": "final.md: \"Razor's normal string rendering is HTML-encoded; do not use Html.Raw for dictionary text\" and the view uses `@warningText` (encoded interpolation, no Html.Raw). Also explicitly states the provider 'must not pass configuration values, exception details, credentials, or other secrets to the view.'"
+        },
+        {
+          "text": "Build verification is reported honestly",
+          "passed": true,
+          "evidence": "final.md: 'Build verification: No project files or input implementation were provided, and I did not run a build. The snippets should be checked against the site's installed Umbraco 17 package and existing localization conventions before deployment.' Transcript also states: 'Recorded that no build was run because no project/input implementation was supplied.' No false claim of a passing build."
+        }
+      ]
+    },
+    {
+      "eval_id": 3,
+      "eval_name": "razor-multilingual-fallback",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.8333333333333334,
+        "passed": 5,
+        "failed": 1,
+        "total": 6,
+        "time_seconds": 0,
+        "tokens": 0
+      },
+      "expectations": [
+        {
+          "text": "The response explicitly chooses Razor only because frontend presentation was requested and keeps the check logic out of the view",
+          "passed": false,
+          "evidence": "final.md never discusses why Razor was chosen over any alternative (e.g. an API/controller or view component) or states that Razor is appropriate specifically because this is frontend presentation. The transcript.md summary also has no such reasoning ('Wrote final.md containing Dictionary item language values and a Razor example...'). While the health-check result is passed in via ViewData['HealthCheckNeedsAttention'] rather than computed in the view, there is no explicit statement that check logic is deliberately kept out of the view — this is incidental, not an articulated design choice."
+        },
+        {
+          "text": "Dictionary aliases are stable and organised by feature and message purpose rather than translated names",
+          "passed": true,
+          "evidence": "final.md uses a single dictionary key 'HealthCheck.Warning' (line 3: 'Create one Dictionary item with the key `HealthCheck.Warning`'), which is feature-scoped (HealthCheck) and purpose-scoped (Warning), not a translated string used as a key."
+        },
+        {
+          "text": "English, Danish, and German values are treated as deliberate supported cultures",
+          "passed": true,
+          "evidence": "final.md lists explicit values for 'English', 'Danish', 'German' (lines 5-7) and states 'Ensure the request culture is set to `en`, `da`, or `de` before the view renders (using Umbraco's configured request-culture/localization middleware)' (line 39), treating these three as the deliberately supported set."
+        },
+        {
+          "text": "The fallback order is explicit and ends in a safe non-sensitive invariant message or failure state",
+          "passed": true,
+          "evidence": "final.md defines an explicit two-step fallback: dictionary lookup via `Umbraco.GetDictionaryValue(dictionaryKey, fallback)`, then an additional check (lines 23-28) that replaces the value with the hardcoded English `fallback` string if the result is blank or equals the dictionary key. The final invariant message ('Some health checks need attention. Please try again later.') is non-sensitive and generic, and line 39 explicitly explains this guarantees visitors never see a blank warning or a raw dictionary key."
+        },
+        {
+          "text": "Razor output is encoded and does not expose configuration secrets",
+          "passed": true,
+          "evidence": "The markup uses plain Razor output `@warning` inside an `<aside>` element (lines 33-35) without `Html.Raw` or any unencoded rendering, so Razor's default HTML encoding applies. No configuration values, connection strings, or environment secrets appear anywhere in the snippet or surrounding text — only static dictionary text and a boolean health-check flag are rendered."
+        },
+        {
+          "text": "Build verification is reported honestly",
+          "passed": true,
+          "evidence": "final.md states plainly: 'No repository files were modified. Build verification was not run because this response only supplies Razor and configuration guidance.' (line 41), and transcript.md corroborates: 'No build or tests were run; this was a documentation/code-guidance response only.' This is an honest, non-fabricated report of no verification having occurred."
+        }
+      ]
+    }
+  ],
+  "run_summary": {
+    "with_skill": {
+      "pass_rate": {
+        "mean": 0.9333,
+        "stddev": 0.1155,
+        "min": 0.8,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 0.0,
+        "stddev": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "tokens": {
+        "mean": 0.0,
+        "stddev": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      }
+    },
+    "without_skill": {
+      "pass_rate": {
+        "mean": 0.8111,
+        "stddev": 0.2009,
+        "min": 0.6,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 0.0,
+        "stddev": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "tokens": {
+        "mean": 0.0,
+        "stddev": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      }
+    },
+    "delta": {
+      "pass_rate": "+0.12",
+      "time_seconds": "+0.0",
+      "tokens": "+0"
+    }
+  },
+  "notes": [
+    "With-skill pass rate improved from 81% to 93% across the three evals (+0.12).",
+    "The largest gains were configuration checks (60% to 80%) and Razor rationale/fallback guidance (83% to 100%).",
+    "General-check performance was equal at 100% for both configurations; this scenario is non-discriminating and should be strengthened in a future iteration.",
+    "Timing and token data were unavailable because evaluator agents did not emit timing.json.",
+    "The official aggregation script could not run because Python is unavailable in this Windows environment; this benchmark was generated from the same grading.json schema and calculations."
+  ]
+}

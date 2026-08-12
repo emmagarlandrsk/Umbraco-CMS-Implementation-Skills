@@ -1,0 +1,13 @@
+{
+  "eval_id": 2,
+  "eval_name": "general-check",
+  "prompt": "Add a custom Umbraco 17 Health Check that checks whether robots.txt exists and offers a safe action to create it when missing. Use localized messages and explain how the check can be scheduled and notified.",
+  "expectations": [
+    "The implementation derives from the current Umbraco HealthCheck API and returns an explicit success or error status",
+    "A remediation action is offered only when the file is missing, has a stable alias, and is validated in ExecuteAction",
+    "Write failures are surfaced as an error and logged rather than swallowed or reported as success",
+    "User-facing messages use the project localization mechanism, and the response links to official Health Check and health-check configuration documentation",
+    "The response explains that scheduled execution/notifications are separate from dashboard loading",
+    "Build verification is reported honestly"
+  ]
+}
