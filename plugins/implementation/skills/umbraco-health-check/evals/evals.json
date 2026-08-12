@@ -1,0 +1,57 @@
+{
+  "skill_name": "umbraco-health-check",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I have an Umbraco 17 site. Create a custom dashboard Health Check that verifies Umbraco:CMS:Global:UseHttps is true in production, places it in the Security group, and gives editors a useful official documentation link. Tell me how to verify it in Settings > Health Check.",
+      "expected_output": "The agent chooses the backend C# surface, fetches the official Health Check documentation, implements the appropriate configuration-check API for Umbraco 17, and explains dashboard verification.",
+      "files": [],
+      "expectations": [
+        "The response distinguishes a backoffice Health Check from a health probe endpoint",
+        "The implementation uses a stable HealthCheck attribute with a unique GUID, concise name, description, and Security group",
+        "The check reads Umbraco:CMS:Global:UseHttps and treats true as the recommended accepted value",
+        "The response links to the official .md Health Check documentation and gives Settings > Health Check verification steps",
+        "If a buildable project exists, the agent reports a successful build only after running it; otherwise it explicitly says build verification was unavailable"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Add a custom Umbraco 17 Health Check that checks whether robots.txt exists and offers a safe action to create it when missing. Use localized messages and explain how the check can be scheduled and notified.",
+      "expected_output": "The agent uses the general backend C# surface, separates status checking from remediation and notification configuration, and handles failures explicitly.",
+      "files": [],
+      "expectations": [
+        "The implementation derives from the current Umbraco HealthCheck API and returns an explicit success or error status",
+        "A remediation action is offered only when the file is missing, has a stable alias, and is validated in ExecuteAction",
+        "Write failures are surfaced as an error and logged rather than swallowed or reported as success",
+        "User-facing messages use the project localization mechanism, and the response links to official Health Check and health-check configuration documentation",
+        "The response explains that scheduled execution/notifications are separate from dashboard loading",
+        "Build verification is reported honestly"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "On our Umbraco 17 Razor site, show a localized health-check warning to visitors. We support English, Danish, and German, use Dictionary items, and need a safe fallback if the translation is missing.",
+      "expected_output": "The agent chooses the Razor surface, keeps health status computation in backend code, organises stable Dictionary aliases by feature/message, renders the selected culture safely, and defines an explicit fallback chain.",
+      "files": [],
+      "expectations": [
+        "The response explicitly chooses Razor only because frontend presentation was requested and keeps the check logic out of the view",
+        "Dictionary aliases are stable and organised by feature and message purpose rather than translated names",
+        "English, Danish, and German values are treated as deliberate supported cultures",
+        "The fallback order is explicit and ends in a safe non-sensitive invariant message or failure state",
+        "Razor output is encoded and does not expose configuration secrets",
+        "Build verification is reported honestly"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "I need a Kubernetes readiness endpoint for an Umbraco 17 deployment, not a Settings dashboard check.",
+      "expected_output": "The agent skips this skill and directs the user to the official Health Probes documentation.",
+      "files": [],
+      "expectations": [
+        "The response does not create a custom HealthCheck class or Dictionary setup",
+        "The response identifies readiness/liveness probes as outside this skill’s scope",
+        "The response links to the official .md Health Probes documentation"
+      ]
+    }
+  ]
+}
