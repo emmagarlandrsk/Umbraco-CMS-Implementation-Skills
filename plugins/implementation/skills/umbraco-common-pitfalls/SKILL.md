@@ -282,7 +282,7 @@ Currently active supported versions (as of 2026-08-05):
 | Umbraco 17 | LTS | 27-11-2028 |
 | Umbraco 13 | LTS | 14-12-2026 |
 
-Versions 10–16 are end-of-life. Source:
+Versions 10–12 and 14–16 are end-of-life. Umbraco 13 remains supported until 14-12-2026. Source:
 [Umbraco LTS & End-of-Life](https://umbraco.com/products/knowledge-center/long-term-support-and-end-of-life/).
 
 ## Documentation reference
