@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <meta http-equiv="Cache-Control" content="no-cache">
+    <title>We'll be right back</title>
+    <!-- Umbraco Cloud Error Page: must be fully self-contained (served via Cloudflare from
+         blob storage while the site is down - no external fonts/CSS/JS will load) and under
+         20 KB. Upload via the Cloud portal: Error Pages > Upload Error Page. -->
+    <style>
+        :root{--brand:#1B1B1B;--gray:#6B7280;--light:#F5F5F5;--white:#fff;--accent:#f5c1bc}
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--light);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+        .container{background:var(--white);border-radius:24px;padding:2.5rem;max-width:480px;width:100%;box-shadow:0 20px 40px rgba(0,0,0,0.2);text-align:center}
+        h1{color:var(--brand);font-size:1.75rem;font-weight:700;margin-bottom:0.75rem}
+        p{color:var(--gray);font-size:1rem;line-height:1.6;margin-bottom:1.5rem}
+        .status-badge{display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:var(--brand);padding:8px 16px;border-radius:20px;font-size:0.875rem;font-weight:600}
+        .spinner{width:14px;height:14px;border:2px solid var(--brand);border-bottom-color:transparent;border-radius:50%;animation:spin 1s linear infinite}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        button{display:none;margin-top:1rem;background:var(--brand);color:var(--white);border:0;border-radius:4px;cursor:pointer;padding:0.6rem 1.25rem;font-size:0.9rem}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>We'll be right back</h1>
+        <p>We're performing some maintenance on the site. It won't take long — thanks for your patience!</p>
+        <div class="status-badge">
+            <span class="spinner"></span>
+            <span>Checking status&hellip; no need to refresh</span>
+        </div>
+        <button id="refresh-btn" onclick="location.reload()">Refresh page</button>
+        <noscript><button style="display:inline-block" onclick="location.reload()">Refresh page</button></noscript>
+    </div>
+    <script>
+        // Cloud does not reload visitors automatically when the site comes back.
+        var MAX_ATTEMPTS = 20;
+        var attempt = 0;
+
+        function getDelay(n) {
+            var base = Math.min(5000 * Math.pow(2, n - 1), 60000);
+            var jitter = base * 0.1 * (Math.random() * 2 - 1);
+            return Math.round(base + jitter);
+        }
+
+        function poll() {
+            attempt++;
+            fetch(location.href + '?_poll=' + Date.now(), { method: 'HEAD', cache: 'no-store' })
+                .then(function (response) {
+                    if (response.ok) {
+                        location.reload();
+                        return;
+                    }
+                    scheduleNext();
+                })
+                .catch(scheduleNext);
+        }
+
+        function scheduleNext() {
+            if (attempt >= MAX_ATTEMPTS) {
+                document.getElementById('refresh-btn').style.display = 'inline-block';
+                return;
+            }
+            setTimeout(poll, getDelay(attempt));
+        }
+
+        setTimeout(poll, 5000);
+    </script>
+</body>
+</html>
