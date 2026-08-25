@@ -46,8 +46,6 @@
     <Compile Include="..\plugins\**\examples\*\*BlankTests.cs" Exclude="..\plugins\**\bin\**;..\plugins\**\obj\**" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Compile Remove="..\plugins\implementation\skills\umbraco-custom-error-pages\examples\approach-b-config-based\ErrorPagesApproachBBlankTests.cs" />
   </ItemGroup>
 
 </Project>

@@ -1,8 +1,0 @@
-{
-    "chat.tools.terminal.autoApprove": {
-        "/^New-Item -ItemType Directory -Force -Path 'C:\\\\Users\\\\EmmaGarland\\\\source\\\\repos\\\\Umbraco-CMS-Implementation-Skills\\.worktrees\\\\health-check-skill-development\\\\plugins\\\\implementation\\\\skills\\\\umbraco-health-check-workspace\\\\iteration-2\\\\robots-txt\\\\with_skill\\\\outputs' \\| Out-Null$/": {
-            "approve": true,
-            "matchCommandLine": true
-        }
-    }
-}
