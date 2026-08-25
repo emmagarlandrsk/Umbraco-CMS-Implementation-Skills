@@ -33,6 +33,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "examples", "examples", "{5D
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "robots-txt", "robots-txt", "{DE9AF4B6-D0E2-4700-805A-04535FC1E3CE}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Umbraco-HealthCheck.Example", "plugins\implementation\skills\umbraco-health-check\examples\robots-txt\Umbraco-HealthCheck.Example.csproj", "{423FFEA8-C860-4CDD-ACCE-603961EECC63}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
