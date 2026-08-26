@@ -46,6 +46,4 @@
     <Compile Include="..\plugins\**\examples\*\*BlankTests.cs" Exclude="..\plugins\**\bin\**;..\plugins\**\obj\**" />
   </ItemGroup>
 
-  </ItemGroup>
-
 </Project>
