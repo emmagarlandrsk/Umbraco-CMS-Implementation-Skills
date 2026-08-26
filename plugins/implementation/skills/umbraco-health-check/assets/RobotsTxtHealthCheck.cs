@@ -6,24 +6,24 @@ using Umbraco.Cms.Core.Services;
 
 namespace Umbraco.Web.HealthCheck.Checks.SEO;
 
-[HealthCheck("3A482719-3D90-4BC1-B9F8-910CD9CF5B32", "Robots.txt",
+[HealthCheck("A7D3E9F1-60B4-4C8A-B2D5-9E1F73C6428B", "Robots.txt",
     Description = "Create a robots.txt file to block access to system folders.",
     Group = "SEO")]
 public class RobotsTxtHealthCheck : Umbraco.Cms.Core.HealthChecks.HealthCheck
 {
     private const string AddDefaultRobotsTxtAction = "addDefaultRobotsTxtFile";
-    private readonly IHostEnvironment _hostEnvironment;
-    private readonly ILogger<RobotsTxtHealthCheck> _logger;
-    private readonly ILocalizedTextService _textService;
+    private readonly IHostEnvironment hostEnvironment;
+    private readonly ILogger<RobotsTxtHealthCheck> logger;
+    private readonly ILocalizedTextService textService;
 
     public RobotsTxtHealthCheck(
         ILocalizedTextService textService,
         IHostEnvironment hostEnvironment,
         ILogger<RobotsTxtHealthCheck> logger)
     {
-        _textService = textService;
-        _hostEnvironment = hostEnvironment;
-        _logger = logger;
+        this.textService = textService;
+        this.hostEnvironment = hostEnvironment;
+        this.logger = logger;
     }
 
     public override Task<IEnumerable<HealthCheckStatus>> GetStatusAsync() =>

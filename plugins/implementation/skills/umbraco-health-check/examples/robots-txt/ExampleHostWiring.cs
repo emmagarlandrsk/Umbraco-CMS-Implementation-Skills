@@ -4,7 +4,6 @@ using Microsoft.Extensions.Hosting;
 using Umbraco.Cms.Core.Composing;
 using Umbraco.Cms.Core.DependencyInjection;
 using Umbraco.Cms.Core.HealthChecks;
-using Umbraco.Cms.Core.Services;
 
 namespace Umbraco.Skills.Examples.HealthCheck;
 
@@ -17,29 +16,21 @@ public sealed class ExampleHealthCheckComposer : IComposer
 }
 
 [ApiExplorerSettings(IgnoreApi = true)]
-public sealed class ExampleHealthCheckController : Controller
+public sealed class ExampleHealthCheckController(
+    HealthCheckCollection checks,
+    IHostEnvironment hostEnvironment)
+    : Controller
 {
-    private readonly HealthCheckCollection _checks;
-    private readonly IHostEnvironment _hostEnvironment;
-
-    public ExampleHealthCheckController(
-        HealthCheckCollection checks,
-        IHostEnvironment hostEnvironment)
-    {
-        _checks = checks;
-        _hostEnvironment = hostEnvironment;
-    }
-
     [HttpGet]
     [Route("example/health-check/robots")]
     public async Task<IActionResult> Robots()
     {
         Umbraco.Cms.Core.HealthChecks.HealthCheck check =
-            _checks.Single(x => x.Id == Guid.Parse("3A482719-3D90-4BC1-B9F8-910CD9CF5B32"));
+            checks.Single(x => x.Id == Guid.Parse("A7D3E9F1-60B4-4C8A-B2D5-9E1F73C6428B"));
         HealthCheckStatus status = (await check.GetStatusAsync()).Single();
 
         return Content(
-            $"{status.ResultType}|{System.IO.File.Exists(Path.Combine(_hostEnvironment.ContentRootPath, "robots.txt"))}");
+            $"{status.ResultType}|{System.IO.File.Exists(Path.Combine(hostEnvironment.ContentRootPath, "robots.txt"))}");
     }
 
     [HttpPost]
@@ -52,13 +43,13 @@ public sealed class ExampleHealthCheckController : Controller
         }
 
         Umbraco.Cms.Core.HealthChecks.HealthCheck check =
-            _checks.Single(x => x.Id == Guid.Parse("3A482719-3D90-4BC1-B9F8-910CD9CF5B32"));
+            checks.Single(x => x.Id == Guid.Parse("A7D3E9F1-60B4-4C8A-B2D5-9E1F73C6428B"));
 
         try
         {
             HealthCheckStatus status = check.ExecuteAction(new HealthCheckAction(requestedAction, check.Id));
             return Content(
-                $"{status.ResultType}|{System.IO.File.Exists(Path.Combine(_hostEnvironment.ContentRootPath, "robots.txt"))}");
+                $"{status.ResultType}|{System.IO.File.Exists(Path.Combine(hostEnvironment.ContentRootPath, "robots.txt"))}");
         }
         catch (InvalidOperationException exception)
         {
@@ -70,7 +61,7 @@ public sealed class ExampleHealthCheckController : Controller
     [Route("example/health-check/robots")]
     public IActionResult RemoveRobotsFile()
     {
-        System.IO.File.Delete(Path.Combine(_hostEnvironment.ContentRootPath, "robots.txt"));
+        System.IO.File.Delete(Path.Combine(hostEnvironment.ContentRootPath, "robots.txt"));
         return NoContent();
     }
 }

@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.0.31903.59
+# Visual Studio Version 18
+VisualStudioVersion = 18.9.12112.369 stable
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Umbraco-CMS.Skills", "Umbraco-CMS.Skills\Umbraco-CMS.Skills.csproj", "{6F94C5EF-FC00-4367-8C1B-A7E8E35BDCC3}"
 EndProject
@@ -34,6 +34,11 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "robots-txt", "robots-txt", "{DE9AF4B6-D0E2-4700-805A-04535FC1E3CE}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Umbraco-HealthCheck.Example", "plugins\implementation\skills\umbraco-health-check\examples\robots-txt\Umbraco-HealthCheck.Example.csproj", "{423FFEA8-C860-4CDD-ACCE-603961EECC63}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "assets", "assets", "{C6032B00-5642-4C45-965E-763B1053C913}"
+	ProjectSection(SolutionItems) = preProject
+		plugins\implementation\skills\umbraco-health-check\assets\RobotsTxtHealthCheck.cs = plugins\implementation\skills\umbraco-health-check\assets\RobotsTxtHealthCheck.cs
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -144,5 +149,9 @@ Global
 		{5D4B4661-7188-A874-1DDC-8A8D659F2A4F} = {C0388796-F19A-D70E-64A9-86F2DF0A3CAF}
 		{DE9AF4B6-D0E2-4700-805A-04535FC1E3CE} = {5D4B4661-7188-A874-1DDC-8A8D659F2A4F}
 		{423FFEA8-C860-4CDD-ACCE-603961EECC63} = {DE9AF4B6-D0E2-4700-805A-04535FC1E3CE}
+		{C6032B00-5642-4C45-965E-763B1053C913} = {C0388796-F19A-D70E-64A9-86F2DF0A3CAF}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {0F562F54-0937-4FA6-BF33-FEDD994916CA}
 	EndGlobalSection
 EndGlobal
