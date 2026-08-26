@@ -46,19 +46,19 @@ public class RobotsTxtHealthCheck : Umbraco.Cms.Core.HealthChecks.HealthCheck
 
     private HealthCheckStatus CheckForRobotsTxtFile()
     {
-        var robotsTxtPath = Path.Combine(_hostEnvironment.ContentRootPath, "robots.txt");
+        var robotsTxtPath = Path.Combine(hostEnvironment.ContentRootPath, "robots.txt");
         var exists = File.Exists(robotsTxtPath);
         var message = exists
-            ? _textService.Localize("healthcheck", "seoRobotsCheckSuccess", CultureInfo.CurrentUICulture)
-            : _textService.Localize("healthcheck", "seoRobotsCheckFailed", CultureInfo.CurrentUICulture);
+            ? textService.Localize("healthcheck", "seoRobotsCheckSuccess", CultureInfo.CurrentUICulture)
+            : textService.Localize("healthcheck", "seoRobotsCheckFailed", CultureInfo.CurrentUICulture);
 
         var actions = new List<HealthCheckAction>();
         if (!exists)
         {
             actions.Add(new HealthCheckAction(AddDefaultRobotsTxtAction, Id)
             {
-                Name = _textService.Localize("healthcheck", "seoRobotsRectifyButtonName", CultureInfo.CurrentUICulture),
-                Description = _textService.Localize("healthcheck", "seoRobotsRectifyDescription", CultureInfo.CurrentUICulture)
+                Name = textService.Localize("healthcheck", "seoRobotsRectifyButtonName", CultureInfo.CurrentUICulture),
+                Description = textService.Localize("healthcheck", "seoRobotsRectifyDescription", CultureInfo.CurrentUICulture)
             });
         }
 
@@ -76,7 +76,7 @@ public class RobotsTxtHealthCheck : Umbraco.Cms.Core.HealthChecks.HealthCheck
             User-agent: *
             Disallow: /umbraco/
             """;
-        var robotsTxtPath = Path.Combine(_hostEnvironment.ContentRootPath, "robots.txt");
+        var robotsTxtPath = Path.Combine(hostEnvironment.ContentRootPath, "robots.txt");
 
         if (File.Exists(robotsTxtPath))
         {
@@ -92,25 +92,25 @@ public class RobotsTxtHealthCheck : Umbraco.Cms.Core.HealthChecks.HealthCheck
         }
         catch (IOException exception)
         {
-            _logger.LogError(exception, "Could not write robots.txt to the root of the site.");
+            logger.LogError(exception, "Could not write robots.txt to the root of the site.");
             return WriteFailureStatus();
         }
         catch (UnauthorizedAccessException exception)
         {
-            _logger.LogError(exception, "Could not write robots.txt to the root of the site.");
+            logger.LogError(exception, "Could not write robots.txt to the root of the site.");
             return WriteFailureStatus();
         }
     }
 
     private HealthCheckStatus SuccessStatus() =>
-        new(_textService.Localize("healthcheck", "seoRobotsCheckSuccess", CultureInfo.CurrentUICulture))
+        new(textService.Localize("healthcheck", "seoRobotsCheckSuccess", CultureInfo.CurrentUICulture))
         {
             ResultType = StatusResultType.Success,
             Actions = new List<HealthCheckAction>()
         };
 
     private HealthCheckStatus WriteFailureStatus() =>
-        new(_textService.Localize("healthcheck", "seoRobotsRectifyFailed", CultureInfo.CurrentUICulture))
+        new(textService.Localize("healthcheck", "seoRobotsRectifyFailed", CultureInfo.CurrentUICulture))
         {
             ResultType = StatusResultType.Error,
             Actions = new List<HealthCheckAction>()
