@@ -32,19 +32,19 @@ public sealed class ExampleHealthCheckController : Controller
 
     [HttpGet]
     [Route("example/health-check/robots")]
-    public async Task<IActionResult> Robots(string? action = null)
+    public async Task<IActionResult> Robots([FromQuery(Name = "action")] string? requestedAction = null)
     {
         Umbraco.Cms.Core.HealthChecks.HealthCheck check =
             _checks.Single(x => x.Id == Guid.Parse("3A482719-3D90-4BC1-B9F8-910CD9CF5B32"));
         HealthCheckStatus status;
 
-        if (action is null)
+        if (requestedAction is null)
         {
             status = (await check.GetStatusAsync()).Single();
         }
         else
         {
-            status = check.ExecuteAction(new HealthCheckAction(action, check.Id));
+            status = check.ExecuteAction(new HealthCheckAction(requestedAction, check.Id));
         }
 
         return Content(
