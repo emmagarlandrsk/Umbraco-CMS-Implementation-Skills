@@ -29,12 +29,20 @@ public class RobotsTxtHealthCheck : Umbraco.Cms.Core.HealthChecks.HealthCheck
     public override Task<IEnumerable<HealthCheckStatus>> GetStatusAsync() =>
         Task.FromResult<IEnumerable<HealthCheckStatus>>(new[] { CheckForRobotsTxtFile() });
 
-    public override HealthCheckStatus ExecuteAction(HealthCheckAction action) =>
-        action.Alias switch
+    public override HealthCheckStatus ExecuteAction(HealthCheckAction action)
+    {
+        if (action.HealthCheckId != Id)
+        {
+            throw new InvalidOperationException(
+                $"Action '{action.Alias}' targets health check '{action.HealthCheckId}', not '{Id}'.");
+        }
+
+        return action.Alias switch
         {
             AddDefaultRobotsTxtAction => AddDefaultRobotsTxtFile(),
             _ => throw new InvalidOperationException($"Action '{action.Alias}' is not supported.")
         };
+    }
 
     private HealthCheckStatus CheckForRobotsTxtFile()
     {
@@ -68,16 +76,19 @@ public class RobotsTxtHealthCheck : Umbraco.Cms.Core.HealthChecks.HealthCheck
             User-agent: *
             Disallow: /umbraco/
             """;
+        var robotsTxtPath = Path.Combine(_hostEnvironment.ContentRootPath, "robots.txt");
+
+        if (File.Exists(robotsTxtPath))
+        {
+            return SuccessStatus();
+        }
 
         try
         {
-            File.WriteAllText(Path.Combine(_hostEnvironment.ContentRootPath, "robots.txt"), content);
-            return new HealthCheckStatus(
-                _textService.Localize("healthcheck", "seoRobotsCheckSuccess", CultureInfo.CurrentUICulture))
-            {
-                ResultType = StatusResultType.Success,
-                Actions = new List<HealthCheckAction>()
-            };
+            using var stream = new FileStream(robotsTxtPath, FileMode.CreateNew, FileAccess.Write, FileShare.Read);
+            using var writer = new StreamWriter(stream);
+            writer.Write(content);
+            return SuccessStatus();
         }
         catch (IOException exception)
         {
@@ -90,6 +101,13 @@ public class RobotsTxtHealthCheck : Umbraco.Cms.Core.HealthChecks.HealthCheck
             return WriteFailureStatus();
         }
     }
+
+    private HealthCheckStatus SuccessStatus() =>
+        new(_textService.Localize("healthcheck", "seoRobotsCheckSuccess", CultureInfo.CurrentUICulture))
+        {
+            ResultType = StatusResultType.Success,
+            Actions = new List<HealthCheckAction>()
+        };
 
     private HealthCheckStatus WriteFailureStatus() =>
         new(_textService.Localize("healthcheck", "seoRobotsRectifyFailed", CultureInfo.CurrentUICulture))

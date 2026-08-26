@@ -1,30 +1,324 @@
+using System.Globalization;
 using System.Net;
+using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Umbraco.Cms.Core.HealthChecks;
+using Umbraco.Cms.Core.Services;
+using Umbraco.Web.HealthCheck.Checks.SEO;
 
 namespace Umbraco_CMS.Skills.TestHost;
 
 [TestFixture]
+[NonParallelizable]
 public sealed class HealthCheckTests
 {
-    [Test]
-    public async Task Robots_check_reports_missing_file_and_can_create_it()
-    {
-        HttpClient client = ReferenceSiteFixture.Client;
-        await client.DeleteAsync("/example/health-check/robots");
+    private string _contentRoot = null!;
+    private RecordingTextService _textService = null!;
+    private RecordingLogger<RobotsTxtHealthCheck> _logger = null!;
 
+    [SetUp]
+    public void SetUp()
+    {
+        _contentRoot = Path.Combine(Path.GetTempPath(), "umbraco-health-check-tests", Guid.NewGuid().ToString());
+        Directory.CreateDirectory(_contentRoot);
+        _textService = new RecordingTextService();
+        _logger = new RecordingLogger<RobotsTxtHealthCheck>();
+    }
+
+    [TearDown]
+    public void TearDown()
+    {
+        if (Directory.Exists(_contentRoot))
+        {
+            Directory.Delete(_contentRoot, recursive: true);
+        }
+    }
+
+    [Test]
+    public async Task Missing_file_reports_error_and_exposes_remediation_action()
+    {
+        // Arrange
+        RobotsTxtHealthCheck check = CreateCheck();
+
+        // Act
+        HealthCheckStatus status = (await check.GetStatusAsync()).Single();
+
+        // Assert
+        Assert.That(status.ResultType, Is.EqualTo(StatusResultType.Error));
+        HealthCheckAction action = status.Actions.Single();
+        Assert.That(action.Alias, Is.EqualTo("addDefaultRobotsTxtFile"));
+        Assert.That(action.HealthCheckId, Is.EqualTo(check.Id));
+    }
+
+    [Test]
+    public async Task Existing_file_reports_success_without_remediation_action()
+    {
+        // Arrange
+        string path = Path.Combine(_contentRoot, "robots.txt");
+        await File.WriteAllTextAsync(path, "existing content");
+        RobotsTxtHealthCheck check = CreateCheck();
+
+        // Act
+        HealthCheckStatus status = (await check.GetStatusAsync()).Single();
+
+        // Assert
+        Assert.That(status.ResultType, Is.EqualTo(StatusResultType.Success));
+        Assert.That(status.Actions, Is.Empty);
+    }
+
+    [Test]
+    public void Supported_action_creates_file_and_reports_success()
+    {
+        // Arrange
+        RobotsTxtHealthCheck check = CreateCheck();
+        HealthCheckAction action = new("addDefaultRobotsTxtFile", check.Id);
+
+        // Act
+        HealthCheckStatus status = check.ExecuteAction(action);
+
+        // Assert
+        Assert.That(status.ResultType, Is.EqualTo(StatusResultType.Success));
+        Assert.That(File.Exists(Path.Combine(_contentRoot, "robots.txt")), Is.True);
+    }
+
+    [Test]
+    public void Repeated_supported_action_is_idempotent_and_does_not_overwrite_file()
+    {
+        // Arrange
+        string path = Path.Combine(_contentRoot, "robots.txt");
+        File.WriteAllText(path, "content managed by the site");
+        RobotsTxtHealthCheck check = CreateCheck();
+        HealthCheckAction action = new("addDefaultRobotsTxtFile", check.Id);
+
+        // Act
+        HealthCheckStatus status = check.ExecuteAction(action);
+
+        // Assert
+        Assert.That(status.ResultType, Is.EqualTo(StatusResultType.Success));
+        Assert.That(File.ReadAllText(path), Is.EqualTo("content managed by the site"));
+    }
+
+    [Test]
+    public void Unsupported_action_is_rejected()
+    {
+        // Arrange
+        RobotsTxtHealthCheck check = CreateCheck();
+        HealthCheckAction action = new("unsupported", check.Id);
+
+        // Act
+        TestDelegate execute = () => check.ExecuteAction(action);
+
+        // Assert
+        Assert.That(execute, Throws.TypeOf<InvalidOperationException>()
+            .With.Message.EqualTo("Action 'unsupported' is not supported."));
+    }
+
+    [Test]
+    public void Action_for_different_health_check_is_rejected_before_writing()
+    {
+        // Arrange
+        RobotsTxtHealthCheck check = CreateCheck();
+        HealthCheckAction action = new("addDefaultRobotsTxtFile", Guid.NewGuid());
+
+        // Act
+        TestDelegate execute = () => check.ExecuteAction(action);
+
+        // Assert
+        Assert.That(execute, Throws.TypeOf<InvalidOperationException>()
+            .With.Message.Contains("targets health check"));
+        Assert.That(File.Exists(Path.Combine(_contentRoot, "robots.txt")), Is.False);
+    }
+
+    [Test]
+    public void Write_failure_reports_error_and_logs_exception()
+    {
+        // Arrange
+        string blockedRoot = Path.Combine(_contentRoot, "not-a-directory");
+        File.WriteAllText(blockedRoot, "a file, not a directory");
+        RobotsTxtHealthCheck check = CreateCheck(blockedRoot);
+        HealthCheckAction action = new("addDefaultRobotsTxtFile", check.Id);
+
+        // Act
+        HealthCheckStatus status = check.ExecuteAction(action);
+
+        // Assert
+        Assert.That(status.ResultType, Is.EqualTo(StatusResultType.Error));
+        Assert.That(_logger.Entries, Has.Count.EqualTo(1));
+        Assert.That(_logger.Entries[0].Level, Is.EqualTo(LogLevel.Error));
+        Assert.That(_logger.Entries[0].Exception, Is.InstanceOf<IOException>());
+    }
+
+    [Test]
+    public async Task Localization_requests_use_current_ui_culture()
+    {
+        // Arrange
+        CultureInfo originalCulture = CultureInfo.CurrentUICulture;
+        CultureInfo testCulture = CultureInfo.GetCultureInfo("fr-FR");
+        CultureInfo.CurrentUICulture = testCulture;
         try
         {
-            HttpResponseMessage initial = await client.GetAsync("/example/health-check/robots");
-            Assert.That(initial.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-            Assert.That(await initial.Content.ReadAsStringAsync(), Is.EqualTo("Error|False"));
+            RobotsTxtHealthCheck check = CreateCheck();
 
-            HttpResponseMessage action =
-                await client.GetAsync("/example/health-check/robots?action=addDefaultRobotsTxtFile");
-            Assert.That(action.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-            Assert.That(await action.Content.ReadAsStringAsync(), Is.EqualTo("Success|True"));
+            // Act
+            _ = (await check.GetStatusAsync()).Single();
+            _ = check.ExecuteAction(new HealthCheckAction("addDefaultRobotsTxtFile", check.Id));
+
+            // Assert
+            Assert.That(_textService.Calls, Is.Not.Empty);
+            Assert.That(_textService.Calls, Has.All.Property("Culture").EqualTo(testCulture));
+            Assert.That(_textService.Calls.Select(call => call.Alias),
+                Does.Contain("seoRobotsCheckFailed")
+                    .And.Contain("seoRobotsRectifyButtonName")
+                    .And.Contain("seoRobotsRectifyDescription")
+                    .And.Contain("seoRobotsCheckSuccess"));
         }
         finally
         {
-            await client.DeleteAsync("/example/health-check/robots");
+            CultureInfo.CurrentUICulture = originalCulture;
+        }
+    }
+
+    [Test]
+    public async Task Status_endpoint_reports_missing_file()
+    {
+        // Arrange
+        HttpClient client = ReferenceSiteFixture.Client;
+        HttpResponseMessage cleanup = await client.DeleteAsync("/example/health-check/robots");
+        Assert.That(cleanup.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+
+        // Act
+        HttpResponseMessage response = await client.GetAsync("/example/health-check/robots");
+
+        // Assert
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        Assert.That(await response.Content.ReadAsStringAsync(), Is.EqualTo("Error|False"));
+    }
+
+    [Test]
+    public async Task Status_endpoint_reports_existing_file()
+    {
+        // Arrange
+        HttpClient client = ReferenceSiteFixture.Client;
+        HttpResponseMessage action = await client.PostAsync(
+            "/example/health-check/robots?action=addDefaultRobotsTxtFile", content: null);
+        Assert.That(action.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+
+        // Act
+        HttpResponseMessage response = await client.GetAsync("/example/health-check/robots");
+
+        // Assert
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        Assert.That(await response.Content.ReadAsStringAsync(), Is.EqualTo("Success|True"));
+    }
+
+    [Test]
+    public async Task Remediation_endpoint_creates_missing_file_and_is_repeatable()
+    {
+        // Arrange
+        HttpClient client = ReferenceSiteFixture.Client;
+        HttpResponseMessage cleanup = await client.DeleteAsync("/example/health-check/robots");
+        Assert.That(cleanup.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+
+        // Act
+        HttpResponseMessage first = await client.PostAsync(
+            "/example/health-check/robots?action=addDefaultRobotsTxtFile", content: null);
+        HttpResponseMessage second = await client.PostAsync(
+            "/example/health-check/robots?action=addDefaultRobotsTxtFile", content: null);
+
+        // Assert
+        Assert.That(first.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        Assert.That(await first.Content.ReadAsStringAsync(), Is.EqualTo("Success|True"));
+        Assert.That(second.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        Assert.That(await second.Content.ReadAsStringAsync(), Is.EqualTo("Success|True"));
+
+        HttpResponseMessage finalCleanup = await client.DeleteAsync("/example/health-check/robots");
+        Assert.That(finalCleanup.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+    }
+
+    [Test]
+    public async Task Remediation_endpoint_rejects_invalid_action()
+    {
+        // Arrange
+        HttpClient client = ReferenceSiteFixture.Client;
+
+        // Act
+        HttpResponseMessage response = await client.PostAsync(
+            "/example/health-check/robots?action=unsupported", content: null);
+
+        // Assert
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+    }
+
+    private RobotsTxtHealthCheck CreateCheck(string? contentRoot = null) =>
+        new(
+            _textService,
+            new TestHostEnvironment(contentRoot ?? _contentRoot),
+            _logger);
+
+    private sealed class TestHostEnvironment(string contentRoot) : IHostEnvironment
+    {
+        public string ApplicationName { get; set; } = "Umbraco-CMS.Skills.Tests";
+        public string EnvironmentName { get; set; } = Environments.Development;
+        public string ContentRootPath { get; set; } = contentRoot;
+        public IFileProvider ContentRootFileProvider { get; set; } = new NullFileProvider();
+    }
+
+    private sealed class RecordingTextService : ILocalizedTextService
+    {
+        public List<LocalizationCall> Calls { get; } = [];
+
+        public string Localize(
+            string? area,
+            string? alias,
+            CultureInfo? culture,
+            IDictionary<string, string?>? tokens = null)
+        {
+            Calls.Add(new LocalizationCall(area, alias, culture));
+            return $"{area}:{alias}";
+        }
+
+        public IDictionary<string, IDictionary<string, string>> GetAllStoredValuesByAreaAndAlias(
+            CultureInfo culture) =>
+            new Dictionary<string, IDictionary<string, string>>();
+
+        public IDictionary<string, string> GetAllStoredValues(CultureInfo culture) =>
+            new Dictionary<string, string>();
+
+        public IEnumerable<CultureInfo> GetSupportedCultures() => [];
+
+        public CultureInfo ConvertToSupportedCultureWithRegionCode(CultureInfo currentCulture) =>
+            currentCulture;
+    }
+
+    private sealed record LocalizationCall(string? Area, string? Alias, CultureInfo? Culture);
+
+    private sealed class RecordingLogger<T> : ILogger<T>
+    {
+        public List<LogEntry> Entries { get; } = [];
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull =>
+            NoopDisposable.Instance;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter) =>
+            Entries.Add(new LogEntry(logLevel, exception, formatter(state, exception)));
+    }
+
+    private sealed record LogEntry(LogLevel Level, Exception? Exception, string Message);
+
+    private sealed class NoopDisposable : IDisposable
+    {
+        public static NoopDisposable Instance { get; } = new();
+
+        public void Dispose()
+        {
         }
     }
 }

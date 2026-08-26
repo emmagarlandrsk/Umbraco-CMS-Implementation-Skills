@@ -32,23 +32,38 @@ public sealed class ExampleHealthCheckController : Controller
 
     [HttpGet]
     [Route("example/health-check/robots")]
-    public async Task<IActionResult> Robots([FromQuery(Name = "action")] string? requestedAction = null)
+    public async Task<IActionResult> Robots()
     {
         Umbraco.Cms.Core.HealthChecks.HealthCheck check =
             _checks.Single(x => x.Id == Guid.Parse("3A482719-3D90-4BC1-B9F8-910CD9CF5B32"));
-        HealthCheckStatus status;
-
-        if (requestedAction is null)
-        {
-            status = (await check.GetStatusAsync()).Single();
-        }
-        else
-        {
-            status = check.ExecuteAction(new HealthCheckAction(requestedAction, check.Id));
-        }
+        HealthCheckStatus status = (await check.GetStatusAsync()).Single();
 
         return Content(
             $"{status.ResultType}|{System.IO.File.Exists(Path.Combine(_hostEnvironment.ContentRootPath, "robots.txt"))}");
+    }
+
+    [HttpPost]
+    [Route("example/health-check/robots")]
+    public IActionResult ExecuteRobotsAction([FromQuery(Name = "action")] string? requestedAction = null)
+    {
+        if (string.IsNullOrWhiteSpace(requestedAction))
+        {
+            return BadRequest("An action alias is required.");
+        }
+
+        Umbraco.Cms.Core.HealthChecks.HealthCheck check =
+            _checks.Single(x => x.Id == Guid.Parse("3A482719-3D90-4BC1-B9F8-910CD9CF5B32"));
+
+        try
+        {
+            HealthCheckStatus status = check.ExecuteAction(new HealthCheckAction(requestedAction, check.Id));
+            return Content(
+                $"{status.ResultType}|{System.IO.File.Exists(Path.Combine(_hostEnvironment.ContentRootPath, "robots.txt"))}");
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BadRequest(exception.Message);
+        }
     }
 
     [HttpDelete]
