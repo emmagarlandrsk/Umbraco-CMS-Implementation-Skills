@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <meta http-equiv="Cache-Control" content="no-cache">
+    <title>Scheduled Maintenance</title>
+    <style>
+        :root{--umb-dark:#1B1B1B;--umb-gray:#6B7280;--umb-light:#F5F5F5;--umb-white:#fff;--umb-alert:#f5c1bc}
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--umb-light);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+        .container{background:var(--umb-white);border-radius:24px;padding:2.5rem;max-width:480px;width:100%;box-shadow:0 20px 40px rgba(0,0,0,0.2);text-align:center}
+        h1{color:var(--umb-dark);font-size:1.75rem;font-weight:700;margin-bottom:0.75rem}
+        p{color:var(--umb-gray);font-size:1rem;line-height:1.6;margin-bottom:1.5rem}
+        .status-badge{display:inline-flex;align-items:center;gap:8px;background:var(--umb-alert);color:var(--umb-dark);padding:8px 16px;border-radius:20px;font-size:0.875rem;font-weight:600;margin-bottom:1rem}
+        .spinner{width:14px;height:14px;border:2px solid var(--umb-dark);border-bottom-color:transparent;border-radius:50%}
+        button{display:none;background:var(--umb-dark);color:var(--umb-white);border:0;border-radius:4px;cursor:pointer;padding:0.6rem 1.25rem;font-size:0.9rem}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1><!-- MAINTENANCE_HEADING -->We'll be right back<!-- /MAINTENANCE_HEADING --></h1>
+        <p><!-- MAINTENANCE_MESSAGE -->Performing scheduled updates to improve your experience. Thanks for your patience!<!-- /MAINTENANCE_MESSAGE --></p>
+        <div class="status-badge">
+            <span class="spinner"></span>
+            <span>Checking status&hellip; no need to refresh</span>
+        </div>
+        <button id="refresh-btn" onclick="location.reload()">Refresh page</button>
+        <noscript><button style="display:inline-block" onclick="location.reload()">Refresh page</button></noscript>
+    </div>
+    <script>
+        // Umbraco's readiness endpoint is anonymous and bypasses the upgrade view.
+        var checkUrl = window.location.origin + '/umbraco/api/health/ready';
+        var MAX_ATTEMPTS = 20;
+        var attempt = 0;
+
+        function getDelay(n) {
+            var base = Math.min(5000 * Math.pow(2, n - 1), 60000);
+            var jitter = base * 0.1 * (Math.random() * 2 - 1);
+            return Math.round(base + jitter);
+        }
+
+        function poll() {
+            attempt++;
+            fetch(checkUrl + '?_poll=' + Date.now(), { method: 'GET', cache: 'no-store' })
+                .then(function (response) {
+                    if (response.ok) {
+                        window.location.reload();
+                        return;
+                    }
+                    scheduleNext();
+                })
+                .catch(scheduleNext);
+        }
+
+        function scheduleNext() {
+            if (attempt >= MAX_ATTEMPTS) {
+                document.getElementById('refresh-btn').style.display = 'inline-block';
+                return;
+            }
+            setTimeout(poll, getDelay(attempt));
+        }
+
+        setTimeout(poll, 5000);
+    </script>
+</body>
+</html>

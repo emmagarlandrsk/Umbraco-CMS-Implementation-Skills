@@ -1,0 +1,63 @@
+{
+  "skill_name": "umbraco-custom-maintenance-page",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We're on a self hosted Umbraco 17.5 site with unattended upgrades enabled. When we deploy a version upgrade, visitors see the default upgrading screen. We want our own branded page there, and ideally it should reload itself once the site is ready. Set it up and tell me how to test it.",
+      "expected_output": "The agent uses the current Umbraco unattended upgrade approach by configuring Umbraco:CMS:Global:UpgradingViewPath to a self contained custom Razor view, references the official upgrade documentation, uses the readiness endpoint for refresh where supported, mentions the generic UmbracoWebsite maintenance page convention as version or flow dependent, and explains how to test it without claiming an unrun test.",
+      "files": [],
+      "expectations": [
+        "The agent selects the current unattended upgrade approach for Umbraco 17.5 and configures Umbraco:CMS:Global:UpgradingViewPath to a custom Razor view",
+        "The custom view is self contained with inline CSS and no dependency on a layout, IPublishedContent, or other live Umbraco or Razor data",
+        "The page includes an auto refresh mechanism that uses the anonymous /umbraco/api/health/ready endpoint or clearly explains an equivalent readiness check",
+        "The agent references or fetches the official Umbraco unattended upgrade or global settings documentation rather than inventing the configuration",
+        "The agent explains that the upgrading view is shown while RuntimeLevel is Upgrading and mentions the ShowMaintenancePageWhenInUpgradeState option where relevant",
+        "The agent distinguishes the current UpgradingViewPath approach from the generic UmbracoWebsite/maintenance.cshtml tutorial convention",
+        "The agent does not conflate this with 404, 500, or Boot Failed handling",
+        "If no buildable Umbraco project is available, the agent does not falsely claim to have run a build or upgrade test and explains the appropriate staging verification"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Our site runs on Umbraco Cloud and uses Umbraco 17.5 unattended upgrades. During deploys and upgrades our visitors sometimes see an unbranded holding page, and we want consistent branding no matter what. What are all the places we need to cover, and how?",
+      "expected_output": "The agent distinguishes the Umbraco 17.5 UpgradingViewPath view from Umbraco Cloud's platform level Error Pages feature, notes that they operate at different layers, uses the readiness behavior appropriately, and offers a consistent self contained design for both.",
+      "files": [],
+      "expectations": [
+        "The agent identifies the Umbraco runtime upgrade view configured through UpgradingViewPath as one layer",
+        "The agent identifies Umbraco Cloud's Error Pages feature as the platform operations layer and explains that it is uploaded and assigned through the Cloud portal",
+        "The agent notes Cloud error pages must be fully self contained with no external CSS, fonts, or JavaScript and within the documented 20 KB size limit",
+        "The agent explains that the Umbraco runtime view and the Cloud platform page are different layers that both need coverage for consistent branding",
+        "The agent offers a shared self contained design that can be adapted across both layers",
+        "If auto refresh is provided, the agent uses or explains the relevant readiness behavior and notes that visitors may need polling or a manual refresh after recovery",
+        "If no buildable Umbraco project is available, the agent does not falsely claim to have run a build or Cloud deployment test"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Can you make our Umbraco 17.5 maintenance page pull its heading and message from a content node in the backoffice, so our editors can change the wording themselves without a developer?",
+      "expected_output": "The agent explains that the upgrading view renders while the application may not be ready, so reading live content is unreliable. It keeps the configured view self contained and, if editor control is wanted, proposes pre baking content into the deployed view ahead of time rather than querying Umbraco during upgrade state.",
+      "files": [],
+      "expectations": [
+        "The agent explains that during upgrade state the content cache or database may be unavailable, so the view cannot reliably query live content through IPublishedContent",
+        "The agent does not produce a configured upgrading view that reads the heading or message live from a content node as the primary solution",
+        "The served upgrading view remains a self contained file with no hard dependency on Umbraco being ready",
+        "If it accommodates editor control at all, it does so by pre generating or baking content into the deployed view ahead of time, not by live querying during upgrade state",
+        "The agent is honest about the trade off rather than agreeing to the request without qualification",
+        "If no buildable Umbraco project is available, the agent does not falsely claim to have verified the generated view"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Our Umbraco 17.5 site is on Azure App Service. We do ordinary deployments several times a week and users briefly see a holding page while the app restarts, but we are not running database migrations. We also want a branded page during actual Umbraco unattended upgrades. Tell us which mechanisms cover each case and how to avoid treating a normal restart as an Umbraco upgrade.",
+      "expected_output": "The agent distinguishes Umbraco unattended upgrade state from ordinary app restart downtime, recommends UpgradingViewPath for the former, and recommends app_offline.htm, deployment slots, or another hosting layer strategy for the latter. It explains that the same self contained branding can be reused without claiming the upgrading view handles both cases.",
+      "files": [],
+      "expectations": [
+        "The agent explicitly distinguishes pending Umbraco migrations from ordinary Azure App Service deployment or app restart downtime",
+        "The agent recommends UpgradingViewPath and a custom upgrading view for Umbraco 17.5 unattended upgrade state",
+        "The agent identifies app_offline.htm, deployment slots, or an equivalent Azure hosting layer mechanism for ordinary deployment downtime",
+        "The agent explains that the same self contained visual design can be adapted across the runtime and hosting layers",
+        "If no buildable Umbraco project or Azure environment is available, the agent does not falsely claim to have performed a deployment or upgrade test"
+      ]
+    }
+  ]
+}

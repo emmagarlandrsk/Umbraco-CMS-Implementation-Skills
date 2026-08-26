@@ -33,7 +33,13 @@ Install the plugins:
 
 These skills use the open [SKILL.md](https://agentskills.io/home) format, supported natively by multiple AI coding tools. Install them into any supported editor using the [Vercel Skills CLI](https://github.com/vercel-labs/skills).
 
-> **Important:** Always use the `-a` flag to target your editor, otherwise skills will be symlinked into every supported agent directory.
+Most supported editors read skills from a **shared `.agents/skills/` directory** rather
+than an editor-specific one, so one install typically covers your whole team — see
+[Where skills get installed](#where-skills-get-installed).
+
+> **Note:** The `-a` flag targets a specific editor. Without it, the CLI installs once
+> into the shared `.agents/skills/` directory and symlinks `.claude/skills/` to it — it
+> does *not* copy the skills into every agent's directory.
 
 Install all skills for your editor:
 ```bash
@@ -43,21 +49,62 @@ npx skills add umbraco/Umbraco-CMS-Implementation-Skills --skill '*' -a cursor
 # For GitHub Copilot
 npx skills add umbraco/Umbraco-CMS-Implementation-Skills --skill '*' -a github-copilot
 
-# For Windsurf
+# For Devin CLI
+npx skills add umbraco/Umbraco-CMS-Implementation-Skills --skill '*' -a devin
+
+# For Devin Desktop (formerly Windsurf)
 npx skills add umbraco/Umbraco-CMS-Implementation-Skills --skill '*' -a windsurf
 ```
 
-### Editor Requirements
+### Where skills get installed
 
-| Editor | Minimum Version | Skills Path |
+`.agents/skills/` is the **recommended** portable, cross-agent location. Devin,
+Devin Desktop/Windsurf, Cursor, GitHub Copilot, Codex, Gemini CLI, OpenCode and
+many others can discover skills there. You generally don't need a per-agent copy:
+
+```
+your-project/
+└── .agents/
+    └── skills/
+        ├── umbraco-sitemap/SKILL.md
+        └── umbraco-custom-error-pages/SKILL.md
+```
+
+| Editor | Minimum Version | Installs to |
 |--------|----------------|-------------|
-| **Cursor** | 2.4+ (January 2026) | `.cursor/skills/` |
-| **GitHub Copilot** (VS Code) | VS Code 1.109+ (January 2026) | `.github/skills/` |
-| **GitHub Copilot** (Coding Agent) | Supported | `.github/skills/` |
-| **Windsurf** | Current | `.windsurf/skills/` |
+| **Cursor** | 2.4+ (January 2026) | `.agents/skills/` |
+| **GitHub Copilot** (VS Code) | VS Code 1.109+ (January 2026) | `.agents/skills/` |
+| **GitHub Copilot** (Coding Agent) | Supported | `.agents/skills/` |
+| **Codex / Gemini CLI / OpenCode** | Current | `.agents/skills/` |
 | **Claude Code** | Current (use Quick Start above) | `.claude/skills/` |
+| **Devin CLI** | Current | `.agents/skills/` |
+| **Devin Desktop (formerly Windsurf)** | Current | `.agents/skills/` |
 
-All of these editors load skills **on-demand** — only the skill relevant to your current task is loaded into context.
+**Claude Code exception.** `-a claude-code` writes to `.claude/skills/`; Devin,
+Devin Desktop (formerly Windsurf), and the other agents in the table use the
+shared `.agents/skills/` location.
+
+If you omit `-a`, the CLI uses its detected agents or prompts for selection; the
+shared location is `.agents/skills/`.
+
+Cursor additionally reads `.cursor/skills/`, `.claude/skills/` and `.codex/skills/`, so
+skills already installed for another agent are usually picked up without reinstalling.
+
+Editors load skills **on-demand** — they read only each skill's `name` and `description`
+up front, then load the full `SKILL.md` when it matches what you're working on. That is
+why a skill's `description` matters: it is the only text the agent sees when deciding
+whether the skill is relevant.
+
+Skills are installed as **copies**, pinned in a `skills-lock.json`. To pick up changes
+after this repo is updated:
+
+```bash
+npx skills update
+```
+
+VS Code users who would rather track this repo live than hold copies can clone it once
+and point [`chat.agentSkillsLocations`](https://code.visualstudio.com/docs/agent-customization/agent-skills)
+at the checkout instead.
 
 ---
 
@@ -170,8 +217,19 @@ Umbraco-CMS-Implementation-Skills/
 ## Contributing
 
 Skills are added under the relevant plugin's `skills/` folder, each as a directory
-containing a `SKILL.md`. The `skill-creator` skill (in `.claude/skills/`) is used to
-scaffold and maintain them — see [.claude/skills/README.md](.claude/skills/README.md).
+containing a `SKILL.md`.
+
+[AGENTS.md](AGENTS.md) is the entry point for anyone working on this repo — human or
+agent, whichever editor you use. It covers the skill-authoring rules, what keeps a
+skill portable across agents, and the validation gates. `CLAUDE.md` imports it and adds
+only the Claude Code-specific parts.
+
+Two authoring skills (in `.claude/skills/`, not published) help maintain the
+marketplace:
+[`umbraco-skill-author`](.claude/skills/umbraco-skill-author/SKILL.md) scaffolds and
+writes a skill, and
+[`umbraco-skill-evaluator`](.claude/skills/umbraco-skill-evaluator/SKILL.md) runs the
+eval loop over it.
 
 Changes land via branch → pull request → squash-merge into `main`.
 

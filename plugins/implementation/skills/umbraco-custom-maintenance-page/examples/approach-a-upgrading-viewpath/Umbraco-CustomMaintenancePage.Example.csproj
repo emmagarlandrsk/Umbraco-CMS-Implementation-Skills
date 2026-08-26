@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    VALIDATION-ONLY example project for umbraco-custom-maintenance-page Approach A (UpgradingViewPath).
+
+    Loaded by SITE 2 (Umbraco-CMS.Skills.Blank, no starter kit). The maintenance view is a template +
+    config approach: the skill's maintenance.cshtml is installed as a template by a package migration
+    and UpgradingViewPath is pointed at it by a composer. No custom C# ships to the user.
+
+    Plain Microsoft.NET.Sdk, NOT Sdk.Razor: the template is installed by the package migration and
+    compiled at runtime by the host, exactly as a real user's template is.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Umbraco.Skills.Examples.CustomMaintenancePage</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Umbraco.Cms.Web.Website" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Static seeding helpers. Referenced as a PROJECT, not linked as source. -->
+    <ProjectReference Include="../../../../../../ExampleFixtures.Shared/ExampleFixtures.Shared.csproj" />
+  </ItemGroup>
+
+</Project>

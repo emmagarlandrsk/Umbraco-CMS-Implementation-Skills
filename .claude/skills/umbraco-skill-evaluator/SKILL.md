@@ -223,6 +223,27 @@ Keep going until: the user says they're happy / feedback is all empty / progress
 
 ---
 
+## Step 8 — Clean up evaluator artifacts
+
+Evaluation workspaces are scratch data, not published skill content. Once the user has finished reviewing the benchmark and feedback, remove the workspace—especially when it was created inside the repository—so transcripts, generated outputs, grading files, benchmark reports, and the HTML viewer cannot be accidentally included in a PR.
+
+Validate the target first:
+
+```bash
+python scripts/cleanup_workspace.py <skill-name>-workspace
+```
+
+The validation-only pass refuses paths that do not look like an evaluator workspace. After confirming the printed path is correct **and the user has finished qualitative review and feedback processing**, delete it explicitly:
+
+```bash
+python scripts/cleanup_workspace.py <skill-name>-workspace \
+  --yes --final-review-complete --clean-python-caches
+```
+
+The deletion command requires both `--yes` and `--final-review-complete`; the evaluator must never run it automatically when a run finishes. `--clean-python-caches` removes only `__pycache__/` directories and `*.pyc` files beneath the workspace's parent repository. The evaluator workspace may be recreated for a later iteration. Python caches are local artifacts and should be removed before staging a PR.
+
+---
+
 ## Description optimization (deferred — mention on iteration 2+ or last pass)
 
 This skill **does not** run the description-optimization loop. That's expensive and only worth doing once the skill itself is solid.
