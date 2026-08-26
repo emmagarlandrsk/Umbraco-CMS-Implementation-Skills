@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Umbraco.Cms.Core.HealthChecks;
@@ -40,16 +41,16 @@ public class RobotsTxtHealthCheck : Umbraco.Cms.Core.HealthChecks.HealthCheck
         var robotsTxtPath = Path.Combine(_hostEnvironment.ContentRootPath, "robots.txt");
         var exists = File.Exists(robotsTxtPath);
         var message = exists
-            ? _textService.Localize("healthcheck", "seoRobotsCheckSuccess", null)
-            : _textService.Localize("healthcheck", "seoRobotsCheckFailed", null);
+            ? _textService.Localize("healthcheck", "seoRobotsCheckSuccess", CultureInfo.CurrentUICulture)
+            : _textService.Localize("healthcheck", "seoRobotsCheckFailed", CultureInfo.CurrentUICulture);
 
         var actions = new List<HealthCheckAction>();
         if (!exists)
         {
             actions.Add(new HealthCheckAction(AddDefaultRobotsTxtAction, Id)
             {
-                Name = _textService.Localize("healthcheck", "seoRobotsRectifyButtonName", null),
-                Description = _textService.Localize("healthcheck", "seoRobotsRectifyDescription", null)
+                Name = _textService.Localize("healthcheck", "seoRobotsRectifyButtonName", CultureInfo.CurrentUICulture),
+                Description = _textService.Localize("healthcheck", "seoRobotsRectifyDescription", CultureInfo.CurrentUICulture)
             });
         }
 
@@ -72,7 +73,7 @@ public class RobotsTxtHealthCheck : Umbraco.Cms.Core.HealthChecks.HealthCheck
         {
             File.WriteAllText(Path.Combine(_hostEnvironment.ContentRootPath, "robots.txt"), content);
             return new HealthCheckStatus(
-                _textService.Localize("healthcheck", "seoRobotsCheckSuccess", null))
+                _textService.Localize("healthcheck", "seoRobotsCheckSuccess", CultureInfo.CurrentUICulture))
             {
                 ResultType = StatusResultType.Success,
                 Actions = new List<HealthCheckAction>()
@@ -91,7 +92,7 @@ public class RobotsTxtHealthCheck : Umbraco.Cms.Core.HealthChecks.HealthCheck
     }
 
     private HealthCheckStatus WriteFailureStatus() =>
-        new(_textService.Localize("healthcheck", "seoRobotsRectifyFailed", null))
+        new(_textService.Localize("healthcheck", "seoRobotsRectifyFailed", CultureInfo.CurrentUICulture))
         {
             ResultType = StatusResultType.Error,
             Actions = new List<HealthCheckAction>()
