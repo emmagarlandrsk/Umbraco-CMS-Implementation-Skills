@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Umbraco.Cms.Core.Composing;
@@ -33,6 +34,7 @@ public sealed class ExampleHealthCheckController(
             $"{status.ResultType}|{System.IO.File.Exists(Path.Combine(hostEnvironment.ContentRootPath, "robots.txt"))}");
     }
 
+    [Authorize]
     [HttpPost]
     [Route("example/health-check/robots")]
     public IActionResult ExecuteRobotsAction([FromQuery(Name = "action")] string? requestedAction = null)
@@ -57,18 +59,4 @@ public sealed class ExampleHealthCheckController(
         }
     }
 
-    [HttpDelete]
-    [Route("example/health-check/robots")]
-    public IActionResult RemoveRobotsFile()
-    {
-        Umbraco.Cms.Core.HealthChecks.HealthCheck check =
-            checks.Single(x => x.Id == Guid.Parse("A7D3E9F1-60B4-4C8A-B2D5-9E1F73C6428B"));
-
-        HealthCheckStatus status = check.ExecuteAction(
-            new HealthCheckAction("deleteDefaultRobotsTxtFile", check.Id));
-
-        return status.ResultType == StatusResultType.Success
-            ? NoContent()
-            : Conflict(status.Message);
-    }
 }

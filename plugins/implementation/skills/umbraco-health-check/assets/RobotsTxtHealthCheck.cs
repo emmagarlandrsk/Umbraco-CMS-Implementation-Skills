@@ -7,12 +7,11 @@ using Umbraco.Cms.Core.Services;
 namespace Umbraco.Web.HealthCheck.Checks.SEO;
 
 [HealthCheck("A7D3E9F1-60B4-4C8A-B2D5-9E1F73C6428B", "Robots.txt",
-    Description = "Create a robots.txt file to block access to system folders.",
+    Description = "Create a robots.txt file to provide crawler guidance for the site.",
     Group = "SEO")]
 public class RobotsTxtHealthCheck : Umbraco.Cms.Core.HealthChecks.HealthCheck
 {
     private const string AddDefaultRobotsTxtAction = "addDefaultRobotsTxtFile";
-    private const string DeleteDefaultRobotsTxtAction = "deleteDefaultRobotsTxtFile";
     private const string DefaultRobotsTxtContent = """
         # robots.txt for Umbraco
         User-agent: *
@@ -46,7 +45,6 @@ public class RobotsTxtHealthCheck : Umbraco.Cms.Core.HealthChecks.HealthCheck
         return action.Alias switch
         {
             AddDefaultRobotsTxtAction => AddDefaultRobotsTxtFile(),
-            DeleteDefaultRobotsTxtAction => DeleteDefaultRobotsTxtFile(),
             _ => throw new InvalidOperationException($"Action '{action.Alias}' is not supported.")
         };
     }
@@ -68,14 +66,6 @@ public class RobotsTxtHealthCheck : Umbraco.Cms.Core.HealthChecks.HealthCheck
                 Description = textService.Localize("healthcheck", "seoRobotsRectifyDescription", CultureInfo.CurrentUICulture)
             });
         }
-        else if (IsManagedRobotsTxtFile(robotsTxtPath))
-        {
-            actions.Add(new HealthCheckAction(DeleteDefaultRobotsTxtAction, Id)
-            {
-                Name = textService.Localize("healthcheck", "seoRobotsDeleteButtonName", CultureInfo.CurrentUICulture),
-                Description = textService.Localize("healthcheck", "seoRobotsDeleteDescription", CultureInfo.CurrentUICulture)
-            });
-        }
 
         return new HealthCheckStatus(message)
         {
@@ -93,15 +83,33 @@ public class RobotsTxtHealthCheck : Umbraco.Cms.Core.HealthChecks.HealthCheck
             return SuccessStatus();
         }
 
+        string temporaryPath = $"{robotsTxtPath}.{Guid.NewGuid():N}.tmp";
         try
         {
-            using var stream = new FileStream(robotsTxtPath, FileMode.CreateNew, FileAccess.Write, FileShare.Read);
-            using var writer = new StreamWriter(stream);
-            writer.Write(DefaultRobotsTxtContent);
+            using (var stream = new FileStream(
+                       temporaryPath,
+                       FileMode.CreateNew,
+                       FileAccess.Write,
+                       FileShare.None,
+                       bufferSize: 4096,
+                       options: FileOptions.SequentialScan))
+            {
+                using var writer = new StreamWriter(stream);
+                writer.Write(DefaultRobotsTxtContent);
+                writer.Flush();
+                stream.Flush(flushToDisk: true);
+            }
+
+            File.Move(temporaryPath, robotsTxtPath, overwrite: false);
             return SuccessStatus();
         }
         catch (IOException exception)
         {
+            if (File.Exists(robotsTxtPath))
+            {
+                return SuccessStatus();
+            }
+
             logger.LogError(exception, "Could not write robots.txt to the root of the site.");
             return WriteFailureStatus();
         }
@@ -110,36 +118,18 @@ public class RobotsTxtHealthCheck : Umbraco.Cms.Core.HealthChecks.HealthCheck
             logger.LogError(exception, "Could not write robots.txt to the root of the site.");
             return WriteFailureStatus();
         }
-    }
-
-    private HealthCheckStatus DeleteDefaultRobotsTxtFile()
-    {
-        string robotsTxtPath = GetRobotsTxtPath();
-
-        if (!File.Exists(robotsTxtPath))
+        finally
         {
-            return SuccessStatus();
-        }
-
-        if (!IsManagedRobotsTxtFile(robotsTxtPath))
-        {
-            return DeleteFailureStatus();
-        }
-
-        try
-        {
-            File.Delete(robotsTxtPath);
-            return SuccessStatus();
-        }
-        catch (IOException exception)
-        {
-            logger.LogError(exception, "Could not delete the managed robots.txt file from the root of the site.");
-            return DeleteFailureStatus();
-        }
-        catch (UnauthorizedAccessException exception)
-        {
-            logger.LogError(exception, "Could not delete the managed robots.txt file from the root of the site.");
-            return DeleteFailureStatus();
+            try
+            {
+                File.Delete(temporaryPath);
+            }
+            catch (IOException)
+            {
+            }
+            catch (UnauthorizedAccessException)
+            {
+            }
         }
     }
 
@@ -159,24 +149,6 @@ public class RobotsTxtHealthCheck : Umbraco.Cms.Core.HealthChecks.HealthCheck
         return robotsTxtPath;
     }
 
-    private static bool IsManagedRobotsTxtFile(string robotsTxtPath)
-    {
-        try
-        {
-            FileAttributes attributes = File.GetAttributes(robotsTxtPath);
-            return !attributes.HasFlag(FileAttributes.ReparsePoint)
-                && File.ReadAllText(robotsTxtPath) == DefaultRobotsTxtContent;
-        }
-        catch (IOException)
-        {
-            return false;
-        }
-        catch (UnauthorizedAccessException)
-        {
-            return false;
-        }
-    }
-
     private HealthCheckStatus SuccessStatus() =>
         new(textService.Localize("healthcheck", "seoRobotsCheckSuccess", CultureInfo.CurrentUICulture))
         {
@@ -191,10 +163,4 @@ public class RobotsTxtHealthCheck : Umbraco.Cms.Core.HealthChecks.HealthCheck
             Actions = new List<HealthCheckAction>()
         };
 
-    private HealthCheckStatus DeleteFailureStatus() =>
-        new(textService.Localize("healthcheck", "seoRobotsDeleteFailed", CultureInfo.CurrentUICulture))
-        {
-            ResultType = StatusResultType.Error,
-            Actions = new List<HealthCheckAction>()
-        };
 }

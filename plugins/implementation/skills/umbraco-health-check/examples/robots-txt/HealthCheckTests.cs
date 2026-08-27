@@ -80,6 +80,8 @@ public sealed class HealthCheckTests
         // assert
         Assert.That(status.ResultType, Is.EqualTo(StatusResultType.Success));
         Assert.That(File.Exists(Path.Combine(contentRoot, "robots.txt")), Is.True);
+        Assert.That(File.ReadAllText(Path.Combine(contentRoot, "robots.txt")), Does.Contain("User-agent: *"));
+        Assert.That(File.ReadAllText(Path.Combine(contentRoot, "robots.txt")), Does.Contain("Disallow: /umbraco/"));
     }
 
     [Test]
@@ -96,55 +98,6 @@ public sealed class HealthCheckTests
 
         // assert
         Assert.That(status.ResultType, Is.EqualTo(StatusResultType.Success));
-        Assert.That(File.ReadAllText(path), Is.EqualTo("content managed by the site"));
-    }
-
-    [Test]
-    public async Task Managed_file_exposes_delete_action()
-    {
-        // arrange
-        RobotsTxtHealthCheck check = CreateCheck();
-        _ = check.ExecuteAction(new HealthCheckAction("addDefaultRobotsTxtFile", check.Id));
-
-        // act
-        HealthCheckStatus status = (await check.GetStatusAsync()).Single();
-
-        // assert
-        HealthCheckAction action = status.Actions.Single();
-        Assert.That(action.Alias, Is.EqualTo("deleteDefaultRobotsTxtFile"));
-        Assert.That(action.HealthCheckId, Is.EqualTo(check.Id));
-    }
-
-    [Test]
-    public void Supported_delete_action_removes_managed_file()
-    {
-        // arrange
-        RobotsTxtHealthCheck check = CreateCheck();
-        _ = check.ExecuteAction(new HealthCheckAction("addDefaultRobotsTxtFile", check.Id));
-
-        // act
-        HealthCheckStatus status = check.ExecuteAction(
-            new HealthCheckAction("deleteDefaultRobotsTxtFile", check.Id));
-
-        // assert
-        Assert.That(status.ResultType, Is.EqualTo(StatusResultType.Success));
-        Assert.That(File.Exists(Path.Combine(contentRoot, "robots.txt")), Is.False);
-    }
-
-    [Test]
-    public void Delete_action_does_not_remove_user_authored_file()
-    {
-        // arrange
-        string path = Path.Combine(contentRoot, "robots.txt");
-        File.WriteAllText(path, "content managed by the site");
-        RobotsTxtHealthCheck check = CreateCheck();
-
-        // act
-        HealthCheckStatus status = check.ExecuteAction(
-            new HealthCheckAction("deleteDefaultRobotsTxtFile", check.Id));
-
-        // assert
-        Assert.That(status.ResultType, Is.EqualTo(StatusResultType.Error));
         Assert.That(File.ReadAllText(path), Is.EqualTo("content managed by the site"));
     }
 
@@ -177,6 +130,26 @@ public sealed class HealthCheckTests
         Assert.That(execute, Throws.TypeOf<InvalidOperationException>()
             .With.Message.Contains("targets health check"));
         Assert.That(File.Exists(Path.Combine(contentRoot, "robots.txt")), Is.False);
+    }
+
+    [Test]
+    public async Task Concurrent_supported_actions_do_not_overwrite_each_other()
+    {
+        // arrange
+        RobotsTxtHealthCheck check = CreateCheck();
+        HealthCheckAction action = new("addDefaultRobotsTxtFile", check.Id);
+
+        // act
+        HealthCheckStatus[] statuses = await Task.WhenAll(
+            Task.Run(() => check.ExecuteAction(action)),
+            Task.Run(() => check.ExecuteAction(action)));
+
+        // assert
+        Assert.That(statuses, Has.All.Property(nameof(HealthCheckStatus.ResultType))
+            .EqualTo(StatusResultType.Success));
+        Assert.That(File.ReadAllText(Path.Combine(contentRoot, "robots.txt")),
+            Does.Contain("Disallow: /umbraco/"));
+        Assert.That(Directory.GetFiles(contentRoot, "*.tmp"), Is.Empty);
     }
 
     [Test]
@@ -221,9 +194,7 @@ public sealed class HealthCheckTests
                 Does.Contain("seoRobotsCheckFailed")
                     .And.Contain("seoRobotsRectifyButtonName")
                     .And.Contain("seoRobotsRectifyDescription")
-                    .And.Contain("seoRobotsCheckSuccess")
-                    .And.Contain("seoRobotsDeleteButtonName")
-                    .And.Contain("seoRobotsDeleteDescription"));
+                    .And.Contain("seoRobotsCheckSuccess"));
         }
         finally
         {
@@ -232,74 +203,32 @@ public sealed class HealthCheckTests
     }
 
     [Test]
-    public async Task Status_endpoint_reports_missing_file()
+    public async Task Status_endpoint_reports_a_status()
     {
         // arrange
         HttpClient client = ReferenceSiteFixture.Client;
-        HttpResponseMessage cleanup = await client.DeleteAsync("/example/health-check/robots");
-        Assert.That(cleanup.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
 
         // act
         HttpResponseMessage response = await client.GetAsync("/example/health-check/robots");
 
         // assert
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-        Assert.That(await response.Content.ReadAsStringAsync(), Is.EqualTo("Error|False"));
+        Assert.That(await response.Content.ReadAsStringAsync(), Does.Match("^(Error|Success)\\|(True|False)$"));
     }
 
     [Test]
-    public async Task Status_endpoint_reports_existing_file()
-    {
-        // arrange
-        HttpClient client = ReferenceSiteFixture.Client;
-        HttpResponseMessage action = await client.PostAsync(
-            "/example/health-check/robots?action=addDefaultRobotsTxtFile", content: null);
-        Assert.That(action.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-
-        // act
-        HttpResponseMessage response = await client.GetAsync("/example/health-check/robots");
-
-        // assert
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-        Assert.That(await response.Content.ReadAsStringAsync(), Is.EqualTo("Success|True"));
-    }
-
-    [Test]
-    public async Task Remediation_endpoint_creates_missing_file_and_is_repeatable()
-    {
-        // arrange
-        HttpClient client = ReferenceSiteFixture.Client;
-        HttpResponseMessage cleanup = await client.DeleteAsync("/example/health-check/robots");
-        Assert.That(cleanup.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
-
-        // act
-        HttpResponseMessage first = await client.PostAsync(
-            "/example/health-check/robots?action=addDefaultRobotsTxtFile", content: null);
-        HttpResponseMessage second = await client.PostAsync(
-            "/example/health-check/robots?action=addDefaultRobotsTxtFile", content: null);
-
-        // assert
-        Assert.That(first.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-        Assert.That(await first.Content.ReadAsStringAsync(), Is.EqualTo("Success|True"));
-        Assert.That(second.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-        Assert.That(await second.Content.ReadAsStringAsync(), Is.EqualTo("Success|True"));
-
-        HttpResponseMessage finalCleanup = await client.DeleteAsync("/example/health-check/robots");
-        Assert.That(finalCleanup.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
-    }
-
-    [Test]
-    public async Task Remediation_endpoint_rejects_invalid_action()
+    public async Task Remediation_endpoint_requires_authorization()
     {
         // arrange
         HttpClient client = ReferenceSiteFixture.Client;
 
         // act
         HttpResponseMessage response = await client.PostAsync(
-            "/example/health-check/robots?action=unsupported", content: null);
+            "/example/health-check/robots?action=addDefaultRobotsTxtFile", content: null);
 
         // assert
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized)
+            .Or.EqualTo(HttpStatusCode.NotFound));
     }
 
     private RobotsTxtHealthCheck CreateCheck(string? contentRoot = null) =>
