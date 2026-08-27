@@ -12,6 +12,12 @@ namespace Umbraco.Web.HealthCheck.Checks.SEO;
 public class RobotsTxtHealthCheck : Umbraco.Cms.Core.HealthChecks.HealthCheck
 {
     private const string AddDefaultRobotsTxtAction = "addDefaultRobotsTxtFile";
+    private const string DeleteDefaultRobotsTxtAction = "deleteDefaultRobotsTxtFile";
+    private const string DefaultRobotsTxtContent = """
+        # robots.txt for Umbraco
+        User-agent: *
+        Disallow: /umbraco/
+        """;
     private readonly IHostEnvironment hostEnvironment;
     private readonly ILogger<RobotsTxtHealthCheck> logger;
     private readonly ILocalizedTextService textService;
@@ -40,13 +46,14 @@ public class RobotsTxtHealthCheck : Umbraco.Cms.Core.HealthChecks.HealthCheck
         return action.Alias switch
         {
             AddDefaultRobotsTxtAction => AddDefaultRobotsTxtFile(),
+            DeleteDefaultRobotsTxtAction => DeleteDefaultRobotsTxtFile(),
             _ => throw new InvalidOperationException($"Action '{action.Alias}' is not supported.")
         };
     }
 
     private HealthCheckStatus CheckForRobotsTxtFile()
     {
-        var robotsTxtPath = Path.Combine(hostEnvironment.ContentRootPath, "robots.txt");
+        string robotsTxtPath = GetRobotsTxtPath();
         var exists = File.Exists(robotsTxtPath);
         var message = exists
             ? textService.Localize("healthcheck", "seoRobotsCheckSuccess", CultureInfo.CurrentUICulture)
@@ -61,6 +68,14 @@ public class RobotsTxtHealthCheck : Umbraco.Cms.Core.HealthChecks.HealthCheck
                 Description = textService.Localize("healthcheck", "seoRobotsRectifyDescription", CultureInfo.CurrentUICulture)
             });
         }
+        else if (IsManagedRobotsTxtFile(robotsTxtPath))
+        {
+            actions.Add(new HealthCheckAction(DeleteDefaultRobotsTxtAction, Id)
+            {
+                Name = textService.Localize("healthcheck", "seoRobotsDeleteButtonName", CultureInfo.CurrentUICulture),
+                Description = textService.Localize("healthcheck", "seoRobotsDeleteDescription", CultureInfo.CurrentUICulture)
+            });
+        }
 
         return new HealthCheckStatus(message)
         {
@@ -71,12 +86,7 @@ public class RobotsTxtHealthCheck : Umbraco.Cms.Core.HealthChecks.HealthCheck
 
     private HealthCheckStatus AddDefaultRobotsTxtFile()
     {
-        const string content = """
-            # robots.txt for Umbraco
-            User-agent: *
-            Disallow: /umbraco/
-            """;
-        var robotsTxtPath = Path.Combine(hostEnvironment.ContentRootPath, "robots.txt");
+        string robotsTxtPath = GetRobotsTxtPath();
 
         if (File.Exists(robotsTxtPath))
         {
@@ -87,7 +97,7 @@ public class RobotsTxtHealthCheck : Umbraco.Cms.Core.HealthChecks.HealthCheck
         {
             using var stream = new FileStream(robotsTxtPath, FileMode.CreateNew, FileAccess.Write, FileShare.Read);
             using var writer = new StreamWriter(stream);
-            writer.Write(content);
+            writer.Write(DefaultRobotsTxtContent);
             return SuccessStatus();
         }
         catch (IOException exception)
@@ -102,6 +112,71 @@ public class RobotsTxtHealthCheck : Umbraco.Cms.Core.HealthChecks.HealthCheck
         }
     }
 
+    private HealthCheckStatus DeleteDefaultRobotsTxtFile()
+    {
+        string robotsTxtPath = GetRobotsTxtPath();
+
+        if (!File.Exists(robotsTxtPath))
+        {
+            return SuccessStatus();
+        }
+
+        if (!IsManagedRobotsTxtFile(robotsTxtPath))
+        {
+            return DeleteFailureStatus();
+        }
+
+        try
+        {
+            File.Delete(robotsTxtPath);
+            return SuccessStatus();
+        }
+        catch (IOException exception)
+        {
+            logger.LogError(exception, "Could not delete the managed robots.txt file from the root of the site.");
+            return DeleteFailureStatus();
+        }
+        catch (UnauthorizedAccessException exception)
+        {
+            logger.LogError(exception, "Could not delete the managed robots.txt file from the root of the site.");
+            return DeleteFailureStatus();
+        }
+    }
+
+    private string GetRobotsTxtPath()
+    {
+        string contentRootPath = Path.GetFullPath(hostEnvironment.ContentRootPath);
+        string robotsTxtPath = Path.GetFullPath(Path.Combine(contentRootPath, "robots.txt"));
+        string contentRootPrefix = contentRootPath.EndsWith(Path.DirectorySeparatorChar)
+            ? contentRootPath
+            : contentRootPath + Path.DirectorySeparatorChar;
+
+        if (!robotsTxtPath.StartsWith(contentRootPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("The robots.txt path is outside the site content root.");
+        }
+
+        return robotsTxtPath;
+    }
+
+    private static bool IsManagedRobotsTxtFile(string robotsTxtPath)
+    {
+        try
+        {
+            FileAttributes attributes = File.GetAttributes(robotsTxtPath);
+            return !attributes.HasFlag(FileAttributes.ReparsePoint)
+                && File.ReadAllText(robotsTxtPath) == DefaultRobotsTxtContent;
+        }
+        catch (IOException)
+        {
+            return false;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return false;
+        }
+    }
+
     private HealthCheckStatus SuccessStatus() =>
         new(textService.Localize("healthcheck", "seoRobotsCheckSuccess", CultureInfo.CurrentUICulture))
         {
@@ -111,6 +186,13 @@ public class RobotsTxtHealthCheck : Umbraco.Cms.Core.HealthChecks.HealthCheck
 
     private HealthCheckStatus WriteFailureStatus() =>
         new(textService.Localize("healthcheck", "seoRobotsRectifyFailed", CultureInfo.CurrentUICulture))
+        {
+            ResultType = StatusResultType.Error,
+            Actions = new List<HealthCheckAction>()
+        };
+
+    private HealthCheckStatus DeleteFailureStatus() =>
+        new(textService.Localize("healthcheck", "seoRobotsDeleteFailed", CultureInfo.CurrentUICulture))
         {
             ResultType = StatusResultType.Error,
             Actions = new List<HealthCheckAction>()

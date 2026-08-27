@@ -100,6 +100,55 @@ public sealed class HealthCheckTests
     }
 
     [Test]
+    public async Task Managed_file_exposes_delete_action()
+    {
+        // arrange
+        RobotsTxtHealthCheck check = CreateCheck();
+        _ = check.ExecuteAction(new HealthCheckAction("addDefaultRobotsTxtFile", check.Id));
+
+        // act
+        HealthCheckStatus status = (await check.GetStatusAsync()).Single();
+
+        // assert
+        HealthCheckAction action = status.Actions.Single();
+        Assert.That(action.Alias, Is.EqualTo("deleteDefaultRobotsTxtFile"));
+        Assert.That(action.HealthCheckId, Is.EqualTo(check.Id));
+    }
+
+    [Test]
+    public void Supported_delete_action_removes_managed_file()
+    {
+        // arrange
+        RobotsTxtHealthCheck check = CreateCheck();
+        _ = check.ExecuteAction(new HealthCheckAction("addDefaultRobotsTxtFile", check.Id));
+
+        // act
+        HealthCheckStatus status = check.ExecuteAction(
+            new HealthCheckAction("deleteDefaultRobotsTxtFile", check.Id));
+
+        // assert
+        Assert.That(status.ResultType, Is.EqualTo(StatusResultType.Success));
+        Assert.That(File.Exists(Path.Combine(contentRoot, "robots.txt")), Is.False);
+    }
+
+    [Test]
+    public void Delete_action_does_not_remove_user_authored_file()
+    {
+        // arrange
+        string path = Path.Combine(contentRoot, "robots.txt");
+        File.WriteAllText(path, "content managed by the site");
+        RobotsTxtHealthCheck check = CreateCheck();
+
+        // act
+        HealthCheckStatus status = check.ExecuteAction(
+            new HealthCheckAction("deleteDefaultRobotsTxtFile", check.Id));
+
+        // assert
+        Assert.That(status.ResultType, Is.EqualTo(StatusResultType.Error));
+        Assert.That(File.ReadAllText(path), Is.EqualTo("content managed by the site"));
+    }
+
+    [Test]
     public void Unsupported_action_is_rejected()
     {
         // arrange
@@ -163,6 +212,7 @@ public sealed class HealthCheckTests
             // act
             _ = (await check.GetStatusAsync()).Single();
             _ = check.ExecuteAction(new HealthCheckAction("addDefaultRobotsTxtFile", check.Id));
+            _ = (await check.GetStatusAsync()).Single();
 
             // assert
             Assert.That(textService.Calls, Is.Not.Empty);
@@ -171,7 +221,9 @@ public sealed class HealthCheckTests
                 Does.Contain("seoRobotsCheckFailed")
                     .And.Contain("seoRobotsRectifyButtonName")
                     .And.Contain("seoRobotsRectifyDescription")
-                    .And.Contain("seoRobotsCheckSuccess"));
+                    .And.Contain("seoRobotsCheckSuccess")
+                    .And.Contain("seoRobotsDeleteButtonName")
+                    .And.Contain("seoRobotsDeleteDescription"));
         }
         finally
         {
